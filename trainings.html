@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Trainings Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom font and minor style adjustments */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        }
+        /* Use Flexbox for rows to fix column alignment while allowing custom styling */
+        #status-table tbody tr {
+            margin-bottom: 8px;
+            display: flex;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #status-table td {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        #status-table td:first-child {
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+        }
+        #status-table td:last-child {
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold tracking-wider text-white uppercase">Upcoming Trainings</h1>
+        </header>
+
+        <main>
+            <div class="bg-gray-800/50 rounded-lg p-4 shadow-lg">
+                <div class="overflow-x-auto">
+                    <table id="status-table" class="w-full text-left border-separate" style="border-spacing: 0;">
+                        <thead class="text-base text-gray-400 uppercase">
+                            <tr class="flex w-full">
+                                <th class="p-4 w-1/6">Date</th>
+                                <th class="p-4 w-1/6">Time</th>
+                                <th class="p-4 w-1/6">Location</th>
+                                <th class="p-4 w-1/2">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+        <footer class="text-center mt-4">
+            <p id="last-updated" class="text-sm text-gray-500"></p>
+        </footer>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1034894331&single=true&output=csv';
+        const REFRESH_INTERVAL_SECONDS = 300; // Refresh every 5 minutes (300 seconds)
+        const CACHE_DURATION_MINUTES = 5;     // How long to cache data in minutes
+        // -------------------
+
+        /**
+         * Fetches and displays training data from the Google Sheet, with caching.
+         */
+        async function loadTrainingData() {
+            const tableBody = document.getElementById('table-body');
+            const CACHE_DURATION_MS = CACHE_DURATION_MINUTES * 60 * 1000;
+
+            // --- Caching Logic: Try to load from cache first ---
+            try {
+                const cachedData = JSON.parse(localStorage.getItem('trainingData'));
+                const cacheTime = localStorage.getItem('trainingDataTimestamp');
+                
+                if (cachedData && cacheTime) {
+                    const isCacheFresh = (new Date().getTime() - cacheTime) < CACHE_DURATION_MS;
+                    if (isCacheFresh) {
+                        console.log("Loading data from cache.");
+                        displayData(cachedData); // Use the new function to display data
+                        return; // Stop here and use the cached version
+                    }
+                }
+            } catch (e) {
+                console.error("Could not read from cache", e);
+            }
+            // --- Caching Logic: End ---
+
+            if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes('PASTE_YOUR_URL_HERE')) {
+                tableBody.innerHTML = `<tr class="bg-yellow-900/50 !flex"><td colspan="4" class="text-center p-12 text-yellow-200 rounded-lg w-full"><strong>Configuration Needed:</strong> Please paste your Google Sheet URL into the script.</td></tr>`;
+                return;
+            }
+
+            try {
+                // Show a loading indicator just before the fetch starts
+                tableBody.innerHTML = `<tr class="bg-gray-700 !flex"><td colspan="4" class="text-center p-12 text-gray-400 rounded-lg w-full"><div class="flex justify-center items-center space-x-2"><svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading fresh data...</span></div></td></tr>`;
+                
+                console.log("Fetching fresh data from Google Sheet.");
+                const response = await fetch(GOOGLE_SHEET_URL);
+                if (!response.ok) {
+                    throw new Error(`The server responded with a status of ${response.status} (${response.statusText}). Check if the Google Sheet link is correct and published.`);
+                }
+                const csvText = await response.text();
+                const trainingData = parseCSV(csvText);
+
+                // --- Caching Logic: Save the fresh data to cache ---
+                localStorage.setItem('trainingData', JSON.stringify(trainingData));
+                localStorage.setItem('trainingDataTimestamp', new Date().getTime());
+                // --- Caching Logic: End ---
+
+                displayData(trainingData);
+
+            } catch (error) {
+                console.error('Error fetching or processing data:', error);
+                let errorMessage = `<strong>Error:</strong> Could not load data.`;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += `<br><br>This is a browser security (CORS) error that happens when you open the file directly.`;
+                    errorMessage += `<br><br><strong>Solution:</strong> Use a tool like VS Code's "Live Server" extension to view this file.`;
+                } else {
+                    errorMessage += `<br><br>${error.message}`;
+                }
+                tableBody.innerHTML = `<tr class="bg-red-900/50 !flex"><td colspan="4" class="text-left p-6 text-red-200 rounded-lg w-full">${errorMessage}</td></tr>`;
+            }
+        }
+
+        /**
+         * Renders the training data into the table after sorting it.
+         */
+        function displayData(trainingData) {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = ''; // Clear table
+
+            if (!trainingData || trainingData.length === 0) {
+                tableBody.innerHTML = `<tr class="bg-gray-700 !flex"><td colspan="4" class="text-center p-12 text-gray-400 rounded-lg w-full">No data found in the sheet.</td></tr>`;
+                return;
+            }
+
+            // --- Sort the data by date, then by time ---
+            trainingData.sort((a, b) => {
+                // Combine date and time for a proper datetime comparison
+                const dateTimeA = new Date(`${a.Date} ${a.Time}`);
+                const dateTimeB = new Date(`${b.Date} ${b.Time}`);
+
+                if (dateTimeA < dateTimeB) return -1;
+                if (dateTimeA > dateTimeB) return 1;
+                return 0;
+            });
+
+            trainingData.forEach(item => {
+                const rowClass = 'bg-gray-700 hover:bg-gray-600';
+                const row = document.createElement('tr');
+                row.className = `${rowClass} transition-colors duration-200`;
+
+                // Note: The last column header is 'Description', but the data field is 'Discription'
+                // Using 'item.Discription' to match the provided Google Sheet data.
+                row.innerHTML = `
+                    <td class="p-4 font-medium text-white w-1/6 text-base">${item.Date || ''}</td>
+                    <td class="p-4 w-1/6 text-base">${item.Time || ''}</td>
+                    <td class="p-4 w-1/6 text-base">${item.Location || ''}</td>
+                    <td class="p-4 text-gray-300 w-1/2 text-base">${item.Discription || ''}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update the 'Last updated' timestamp
+            const lastUpdatedElem = document.getElementById('last-updated');
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+            lastUpdatedElem.textContent = `Last Updated: ${now.toLocaleString('en-US', options)}`;
+        }
+
+        /**
+         * A more robust CSV parser that handles quoted fields containing commas.
+         */
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length < 2) return [];
+            const headers = lines[0].split(',').map(h => h.trim());
+            const rows = [];
+            const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const values = lines[i].match(regex) || [];
+                const rowObject = {};
+                headers.forEach((header, index) => {
+                    let value = values[index] ? values[index].trim() : '';
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.substring(1, value.length - 1).replace(/""/g, '"');
+                    }
+                    rowObject[header] = value;
+                });
+                rows.push(rowObject);
+            }
+            return rows;
+        }
+
+        // Load the data when the page is ready and set up the refresh interval
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTrainingData();
+            setInterval(loadTrainingData, REFRESH_INTERVAL_SECONDS * 1000);
+        });
+    </script>
+
+</body>
+</html>

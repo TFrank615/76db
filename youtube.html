@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Page YouTube Video</title>
+    <style>
+        /* Remove all default margin and padding */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* Prevent scrollbars */
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Create a container that sits on top of the page */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Place it behind other content if you add any */
+        }
+
+        /* Make the iframe fill the container */
+        .video-background iframe {
+            width: 100%;
+            height: 100%;
+            border: none; /* Remove the default iframe border */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="video-background">
+        <!-- 
+          YouTube Iframe Embed
+          - Replace 'x2nlW6gC00Y' with your YouTube video's ID.
+          - `autoplay=1`: Tells the video to start playing automatically.
+          - `mute=`: Mutes the video. This is REQUIRED by most modern browsers for autoplay to work.
+          - `loop=1`: Makes the video loop continuously.
+          - `playlist=x2nlW6gC00Y`: Required for the loop to work.
+          - `controls=0`: Hides the player controls.
+          - `showinfo=0`: Hides information like the video title.
+          - `modestbranding=1`: Reduces the YouTube logo visibility.
+        -->
+        <iframe 
+            src="https://www.youtube.com/embed/x2nlW6gC00Y?autoplay=1&mute=0&loop=1&playlist=x2nlW6gC00Y&controls=0&showinfo=0&modestbranding=1" 
+            title="YouTube video player" 
+            allow="autoplay; encrypted-media"
+            allowfullscreen>
+        </iframe>
+    </div>
+
+    <!-- You can add content on top of the video here if you want -->
+    <!-- For example:
+    <div style="position: relative; z-index: 1; color: white; text-align: center; padding-top: 40vh;">
+        <h1 style="font-size: 4rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.7);">Your Title Here</h1>
+    </div>
+    -->
+
+</body>
+</html>

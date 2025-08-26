@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMS Day Schedule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom font and minor style adjustments */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        }
+        /* Use Flexbox for rows to fix column alignment while allowing custom styling */
+        #status-table tbody tr {
+            margin-bottom: 8px;
+            display: flex;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #status-table td, #status-table th {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        #status-table td:first-child, #status-table th:first-child {
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+        }
+        #status-table td:last-child, #status-table th:last-child {
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <!-- REMOVED SVG icon -->
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-wider text-white uppercase">EMS Day Schedule</h1>
+        </header>
+
+        <main>
+            <div class="bg-gray-800/50 rounded-lg p-4 shadow-lg">
+                <div class="overflow-x-auto">
+                    <table id="status-table" role="table" class="w-full text-left border-separate" style="border-spacing: 0;">
+                        <thead role="rowgroup" class="text-sm text-gray-400 uppercase">
+                            <!-- Column headers for the schedule -->
+                            <tr role="row" class="flex w-full">
+                                <th role="columnheader" class="w-1/5">Date</th>
+                                <th role="columnheader" class="w-1/5">Time</th>
+                                <th role="columnheader" class="w-1/5">Crew Member 1</th>
+                                <th role="columnheader" class="w-1/5">Crew Member 2</th>
+                                <th role="columnheader" class="w-1/5">Trainee</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" role="rowgroup">
+                            <!-- Data will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p id="last-updated">Last updated: --</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1149820120&single=true&output=csv';
+        const CACHE_DURATION_MINUTES = 5;
+        const DAYS_TO_SHOW = 10; // How many days into the future to display
+        const TIME_ZONE = 'America/New_York'; // Define a consistent timezone for all date calculations
+        // -------------------
+
+        /**
+         * Fetches and displays data from the Google Sheet, with caching.
+         */
+        async function loadScheduleData() {
+            const tableBody = document.getElementById('table-body');
+            const CACHE_DURATION_MS = CACHE_DURATION_MINUTES * 60 * 1000;
+
+            // --- Caching Logic: Try to load from cache first ---
+            try {
+                const cachedData = JSON.parse(localStorage.getItem('scheduleData'));
+                const cacheTime = localStorage.getItem('scheduleDataTimestamp');
+                
+                if (cachedData && cacheTime) {
+                    const isCacheFresh = (new Date().getTime() - cacheTime) < CACHE_DURATION_MS;
+                    if (isCacheFresh) {
+                        console.log("Loading data from cache.");
+                        displayData(cachedData);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error("Could not read from cache", e);
+            }
+            // --- Caching Logic: End ---
+
+            if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes('PASTE_YOUR_GOOGLE_SHEET_CSV_URL_HERE')) {
+                tableBody.innerHTML = `
+                    <tr class="bg-yellow-900/50 !flex">
+                        <td colspan="5" class="text-center p-12 text-yellow-200 rounded-lg w-full">
+                            <strong>Configuration Needed:</strong> Please paste your Google Sheet URL into the script.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            try {
+                // Show a loading indicator
+                tableBody.innerHTML = `<tr class="bg-gray-700 !flex"><td colspan="5" class="text-center p-12 text-gray-400 rounded-lg w-full"><div class="flex justify-center items-center space-x-2"><svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading fresh data...</span></div></td></tr>`;
+                
+                console.log("Fetching fresh data from Google Sheet.");
+                const response = await fetch(GOOGLE_SHEET_URL, { cache: 'no-cache' });
+
+                if (!response.ok) {
+                    throw new Error(`The server responded with a status of ${response.status} (${response.statusText}). This usually means the Google Sheet link is incorrect or the sheet is not "Published to the web".`);
+                }
+                const csvText = await response.text();
+                if (!csvText || csvText.trim().startsWith('<')) {
+                    throw new Error('The fetched data does not appear to be a valid CSV file. The Google Sheet URL might be pointing to a login page or an error page.');
+                }
+                const scheduleData = parseCSV(csvText);
+
+                // Cache the fresh data
+                localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+                localStorage.setItem('scheduleDataTimestamp', new Date().getTime());
+
+                displayData(scheduleData);
+
+            } catch (error) {
+                console.error('Error fetching or processing data:', error);
+                let errorMessage = `<strong>Error:</strong> Could not load schedule data.`;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += `<br><br>This could be a network issue or a browser security (CORS) error.`;
+                    errorMessage += `<br><br><strong>Solution:</strong> If you are running this file locally, use a tool like VS Code's "Live Server" extension.`;
+                } else {
+                    errorMessage += `<br><br>${error.message}`;
+                }
+                errorMessage += `<br><br><strong>Troubleshooting Steps:</strong>`;
+                errorMessage += `<br>1. Click this link to test the URL directly: <a href="${GOOGLE_SHEET_URL}" target="_blank" class="text-cyan-400 hover:underline">Test Data Link</a>`;
+                errorMessage += `<br>2. If the link does not show plain text data, re-publish your Google Sheet (File > Share > Publish to web).`;
+                errorMessage += `<br>3. Ensure you have copied the correct published URL.`;
+                errorMessage += `<br><br>Check the developer console (F12) for more details.`;
+                tableBody.innerHTML = `
+                    <tr class="bg-red-900/50 !flex">
+                        <td colspan="5" class="text-left p-6 text-red-200 rounded-lg w-full">${errorMessage}</td>
+                    </tr>`;
+            }
+        }
+
+        /**
+         * Renders the schedule data into the table.
+         */
+        function displayData(scheduleData) {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+            
+            const today = getTodayInTimeZone(TIME_ZONE);
+
+            const endDate = new Date(today);
+            endDate.setDate(today.getDate() + DAYS_TO_SHOW);
+
+            const processedData = scheduleData.map(item => {
+                const dateParts = item.Date2 ? item.Date2.split('/') : [];
+                let parsedDate = null;
+                if (dateParts.length === 3) {
+                    parsedDate = new Date(Date.UTC(dateParts[2], dateParts[0] - 1, dateParts[1]));
+                }
+                return { ...item, parsedDate };
+            });
+
+            const filteredData = processedData.filter(item => {
+                return item.parsedDate && !isNaN(item.parsedDate) && item.parsedDate >= today && item.parsedDate < endDate;
+            });
+
+            if (!filteredData || filteredData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr role="row" class="bg-gray-700 !flex">
+                        <td role="cell" colspan="5" class="text-center p-12 text-gray-400 rounded-lg w-full">
+                            No upcoming shifts scheduled in the next ${DAYS_TO_SHOW} days.
+                        </td>
+                    </tr>`;
+                updateTimestamp();
+                return;
+            }
+            
+            filteredData.sort((a, b) => a.parsedDate - b.parsedDate);
+
+            const mostCurrentDate = filteredData[0].parsedDate;
+
+            filteredData.forEach(item => {
+                const status = item.Status ? item.Status.trim().toLowerCase() : '';
+                let rowClass = 'bg-gray-700 hover:bg-gray-600';
+
+                if (status.includes('in service')) {
+                    rowClass = 'bg-green-800/80 hover:bg-green-700/80';
+                } else if (status.includes('oos')) {
+                    rowClass = 'bg-red-800/80 hover:bg-red-700/80';
+                }
+
+                if (item.parsedDate.getTime() === mostCurrentDate.getTime()) {
+                    rowClass += ' ring-2 ring-yellow-400';
+                }
+
+                const row = document.createElement('tr');
+                row.setAttribute('role', 'row');
+                row.className = `${rowClass} transition-colors duration-200`;
+
+                row.innerHTML = `
+                    <td role="cell" class="font-medium text-white w-1/5">${item.Date2 || ''}</td>
+                    <td role="cell" class="w-1/5">${item.Time2 || ''}</td>
+                    <td role="cell" class="w-1/5">${item['Crew Member 1'] || ''}</td>
+                    <td role="cell" class="text-gray-300 w-1/5">${item['Crew Member 2'] || ''}</td>
+                    <td role="cell" class="text-gray-300 w-1/5">${item.Trainee || ''}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updateTimestamp();
+        }
+
+        /**
+         * Updates the 'Last updated' timestamp in the footer.
+         */
+        function updateTimestamp() {
+            const timestampEl = document.getElementById('last-updated');
+            if (timestampEl) {
+                const now = new Date();
+                // MODIFIED: Changed hour12 to false for 24-hour time format
+                const formattedTime = now.toLocaleString('en-US', {
+                    dateStyle: 'full',
+                    timeStyle: 'medium',
+                    hour12: false, 
+                    timeZone: TIME_ZONE 
+                });
+                timestampEl.textContent = `Last updated: ${formattedTime}`;
+            }
+        }
+        
+        /**
+         * Helper function to get the start of today in a specific timezone.
+         */
+        function getTodayInTimeZone(timeZone) {
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                timeZone: timeZone
+            });
+            const parts = formatter.formatToParts(now);
+            const year = parts.find(p => p.type === 'year').value;
+            const month = parts.find(p => p.type === 'month').value;
+            const day = parts.find(p => p.type === 'day').value;
+
+            return new Date(Date.UTC(year, month - 1, day));
+        }
+
+
+        /**
+         * A more robust CSV parser that handles quoted fields containing commas.
+         */
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim());
+            const rows = [];
+            const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].match(regex) || [];
+                const rowObject = {};
+
+                headers.forEach((header, index) => {
+                    let value = values[index] ? values[index].trim() : '';
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.substring(1, value.length - 1).replace(/""/g, '"');
+                    }
+                    rowObject[header] = value;
+                });
+                rows.push(rowObject);
+            }
+            return rows;
+        }
+
+        document.addEventListener('DOMContentLoaded', loadScheduleData);
+        
+        setInterval(loadScheduleData, CACHE_DURATION_MINUTES * 60 * 1000); // Auto-refresh
+    </script>
+
+</body>
+</html>
