@@ -3,7 +3,7 @@
 const CONFIG = {
     // NWS Alert Zone (from index.html)
     // Find your zone here: https://www.weather.gov/alerts
-    nwsAlertZone: 'THIS_IS_A_TEST_12345',
+    nwsAlertZone: 'OHZ053',
 
     // Google Sheet URLs
     // Go to File > Share > Publish to web, select the sheet, choose CSV, and copy the link.

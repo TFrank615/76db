@@ -21,7 +21,7 @@
     }
     .toolbar {
       width: 250px;
-      background: #000000;
+      background: #1F2937;
       color: white;
       display: flex;
       flex-direction: column;
@@ -33,7 +33,7 @@
     }
     .logo {
       max-width: 100%;
-      height: auto;
+      height: 20;
       border-radius: 8px;
     }
     .slides {
@@ -58,13 +58,6 @@
       height: 100%;
       border: none;
     }
-    .title {
-      margin-top: 20px;
-      font-size: 16px;
-      text-align: center;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
     #nwsAlertOverlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -87,6 +80,39 @@
         visibility: visible;
         opacity: 1;
     }
+    
+    /* NEW: Styles for the custom weather widget in the toolbar */
+    #toolbar-weather-widget {
+        width: 100%;
+        height: 150%;
+        display: block;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+    #toolbar-weather-widget .temp {
+        font-size: 4rem; /* 48px */
+        font-weight: bold;
+    }
+    #toolbar-weather-widget .condition {
+        font-size: 1.250rem; /* 18px */
+        margin-top: -5px;
+        color: #d1d5db; /* Lighter gray */
+    }
+    #toolbar-weather-widget .location {
+        font-size: 1rem; /* 16px */
+        font-weight: bold;
+        margin-top: 10px;
+    }
+    #toolbar-weather-widget .high-low {
+        font-size: 0.875rem; /* 14px */
+        margin-top: 5px;
+        color: #9ca3af; /* Gray */
+    }
+
     @media (max-width: 768px) {
       body {
         flex-direction: column;
@@ -100,9 +126,6 @@
       .slides {
         height: calc(100vh - 150px);
       }
-      .title {
-        display: none;
-      }
       #nwsAlertOverlay {
         font-size: 24px;
       }
@@ -115,8 +138,12 @@
     <div>
       <img src="logo.png" alt="Harmony Township Logo" class="logo">
     </div>
-    <iframe title="Common Ninja Widget" src="https://widgets.commoninja.com/iframe/c4d28163-89c5-4a2e-a0bd-1721d1a7018d" width="95%" height="100%" frameborder="0" scrolling="no"></iframe>
-    <iframe title="Time and Date Clock" src="https://free.timeanddate.com/clock/ia164w8b/n805/fn2/fs30/fcfff/tct/pct/ftb/pb5/tt0/tw0/tm1/th1/tb4" frameborder="0" width="219" height="120" allowtransparency="true"></iframe>
+
+    <div id="toolbar-weather-widget">
+        <p class="location">Loading...</p>
+    </div>
+    
+    <iframe title="Time and Date Clock" src="https://free.timeanddate.com/clock/ia164w8b/n805/fn2/fs30/fcfff/tct/pct/ftb/pb5/tt0/tw0/tm1/th1/tb4" frameborder="0" display=block width=100% height=75% allowtransparency="true"></iframe>
   </div>
 
   <div class="slides" id="slidesContainer">
@@ -177,11 +204,11 @@
         duration: 30000
       },
       {
-        iframe: '<iframe title="Google Slides" src="https://docs.google.com/presentation/d/e/2PACX-1vSwcRaDaFHcBYOPvLNlsNATIDRqoApsB1UX11rVQFwUcRkKrqxb12k4PaiV_IFS1I8LvI_uVw2uqY82/pubembed?start=true&loop=true&delayms=15000&rm=minimal" frameborder="0" width="1440" height="839" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>',
+        iframe: '<iframe title="Google Slides" src="googleslides.html" frameborder="0" allowfullscreen="true"></iframe>',
         duration: 60000
       },
       {
-        iframe: `<iframe title="Weather Radar" src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=default&metricTemp=default&metricWind=mph&zoom=11&overlay=radar&product=radar&level=surface&lat=39.91&lon=-83.602" frameborder="0"></iframe>`,
+        iframe: `<iframe title="Weather Forecast" src="weather.html" frameborder="0"></iframe>`,
         duration: 30000
       },
     ];
@@ -207,7 +234,7 @@
       const iframe = nextSlide.querySelector('iframe');
       
       const transition = () => {
-        if (nextSlide.classList.contains('visible')) return; // Prevent double-firing
+        if (nextSlide.classList.contains('visible')) return;
         currentSlide.classList.remove('visible');
         nextSlide.classList.add('visible');
         activeSlideIndex = nextSlideIndex;
@@ -217,10 +244,9 @@
       iframe.onload = transition;
       iframe.onerror = () => {
         console.error("Iframe failed to load:", source.iframe);
-        transition(); // Still transition to the (blank) slide to not stall the show
+        transition();
       };
       
-      // Failsafe for iframes that might not fire 'load' (e.g., srcdoc, or cached content)
       setTimeout(() => transition(), 500);
     }
 
@@ -244,7 +270,7 @@
           console.error("First iframe failed to load:", firstSource.iframe);
           transition();
       };
-      setTimeout(() => transition(), 500); // Failsafe
+      setTimeout(() => transition(), 500);
     }
 
     startRotation();
@@ -268,12 +294,11 @@
             const alertId = feature.id;
             if (!shownAlerts.has(alertId)) {
               const alert = feature.properties;
-              // Only show alerts with a certain severity
               if (['Severe', 'Extreme'].includes(alert.severity)) {
                   const message = `${alert.headline}`;
-                  showNWSAlert(message, 60000); // Show alert for 60 seconds
+                  showNWSAlert(message, 60000);
                   shownAlerts.add(alertId);
-                  break; // Show one new alert at a time to avoid overlap
+                  break;
               }
             }
           }
@@ -293,8 +318,57 @@
       }, duration);
     }
 
+    // ------------------------------
+    // NEW: Toolbar Weather Widget
+    // ------------------------------
+    const WEATHER_CONFIG = {
+        LATITUDE: 39.95, // South Vienna, Ohio
+        LONGITUDE: -83.6,
+        LOCATION_NAME: "South Vienna, OH",
+        REFRESH_INTERVAL_MINUTES: 15,
+        // Simplified weather codes for the widget
+        CONDITIONS: {
+            0: "Clear", 1: "Clear", 2: "Cloudy", 3: "Overcast", 45: "Fog", 48: "Fog",
+            51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 56: "Freezing Drizzle", 57: "Freezing Drizzle",
+            61: "Rain", 63: "Rain", 65: "Rain", 66: "Freezing Rain", 67: "Freezing Rain",
+            71: "Snow", 73: "Snow", 75: "Snow", 77: "Snow",
+            80: "Showers", 81: "Showers", 82: "Showers", 85: "Snow Showers", 86: "Snow Showers",
+            95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm"
+        }
+    };
+
+    async function fetchToolbarWeather() {
+        const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_CONFIG.LATITUDE}&longitude=${WEATHER_CONFIG.LONGITUDE}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
+        const widget = document.getElementById('toolbar-weather-widget');
+
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error("Failed to fetch weather");
+            const data = await response.json();
+
+            const temp = Math.round(data.current.temperature_2m);
+            const high = Math.round(data.daily.temperature_2m_max[0]);
+            const low = Math.round(data.daily.temperature_2m_min[0]);
+            const condition = WEATHER_CONFIG.CONDITIONS[data.current.weather_code] || 'N/A';
+
+            widget.innerHTML = `
+                <p class="temp">${temp}°</p>
+                <p class="condition">${condition}</p>
+                <p class="location">${WEATHER_CONFIG.LOCATION_NAME}</p>
+                <p class="high-low">H: ${high}° L: ${low}°</p>
+            `;
+
+        } catch (error) {
+            console.error("Toolbar weather fetch failed:", error);
+            widget.innerHTML = `<p class="location">Weather unavailable</p>`;
+        }
+    }
+
+    // Initial calls and intervals
     fetchNWSAlerts();
-    setInterval(fetchNWSAlerts, 300000); // Poll every 5 minutes
+    fetchToolbarWeather();
+    setInterval(fetchNWSAlerts, 300000);
+    setInterval(fetchToolbarWeather, WEATHER_CONFIG.REFRESH_INTERVAL_MINUTES * 60 * 1000);
   </script>
 </body>
 </html>
