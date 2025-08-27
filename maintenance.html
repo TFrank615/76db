@@ -6,32 +6,19 @@
     <title>Maintenance Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom font and minor style adjustments */
-        body {
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-        }
-        /* Use Flexbox for rows to fix column alignment while allowing custom styling */
+        body { font-family: 'Inter', system-ui, sans-serif; }
         #status-table tbody tr {
             margin-bottom: 8px;
-            display: flex; /* Changed from block to flex */
+            display: flex;
             width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         #status-table td {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-            display: flex;
-            align-items: center;
+            padding-top: 1rem; padding-bottom: 1rem; display: flex; align-items: center;
         }
-        #status-table td:first-child {
-            border-top-left-radius: 8px;
-            border-bottom-left-radius: 8px;
-        }
-        #status-table td:last-child {
-            border-top-right-radius: 8px;
-            border-bottom-right-radius: 8px;
-        }
+        #status-table td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        #status-table td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 p-4 sm:p-6 md:p-8">
@@ -54,129 +41,41 @@
                                 <th role="columnheader" class="p-4 w-1/5 text-right">Reported</th>
                             </tr>
                         </thead>
-                        <tbody id="table-body" role="rowgroup">
-                            <!-- Data will be loaded here by JavaScript -->
-                        </tbody>
+                        <tbody id="table-body" role="rowgroup"></tbody>
                     </table>
                 </div>
             </div>
         </main>
-
         <footer class="text-center mt-8 text-sm text-gray-500">
             <p id="last-updated">Last updated: --</p>
         </footer>
-
     </div>
 
+    <script src="config.js"></script>
+    <script src="common.js"></script>
     <script>
-        // --- CONFIGURATION ---
-        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1918136459&single=true&output=csv';
-        // -------------------
-
-        /**
-         * Fetches and displays data from the Google Sheet, with caching.
-         */
-        async function loadMaintenanceData() {
-            const tableBody = document.getElementById('table-body');
-            const CACHE_DURATION_MS = 5 * 60 * 1000; // Cache data for 5 minutes
-
-            // --- Caching Logic: Try to load from cache first ---
-            try {
-                const cachedData = JSON.parse(localStorage.getItem('maintenanceData'));
-                const cacheTime = localStorage.getItem('maintenanceDataTimestamp');
-                
-                if (cachedData && cacheTime) {
-                    const isCacheFresh = (new Date().getTime() - cacheTime) < CACHE_DURATION_MS;
-                    if (isCacheFresh) {
-                        console.log("Loading data from cache.");
-                        displayData(cachedData); // Use the new function to display data
-                        return; // Stop here and use the cached version
-                    }
-                }
-            } catch (e) {
-                console.error("Could not read from cache", e);
-            }
-            // --- Caching Logic: End ---
-
-            if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL === 'PASTE_YOUR_GOOGLE_SHEET_CSV_URL_HERE') {
-                tableBody.innerHTML = `
-                    <tr class="bg-yellow-900/50 !flex">
-                        <td colspan="5" class="text-center p-12 text-yellow-200 rounded-lg w-full">
-                            <strong>Configuration Needed:</strong> Please paste your Google Sheet URL into the script.
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            try {
-                // Show a loading indicator just before the fetch starts
-                tableBody.innerHTML = `<tr class="bg-gray-700 !flex"><td colspan="5" class="text-center p-12 text-gray-400 rounded-lg w-full"><div class="flex justify-center items-center space-x-2"><svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading fresh data...</span></div></td></tr>`;
-                
-                console.log("Fetching fresh data from Google Sheet.");
-                const response = await fetch(GOOGLE_SHEET_URL);
-                if (!response.ok) {
-                    throw new Error(`The server responded with a status of ${response.status} (${response.statusText}). Check if the Google Sheet link is correct and published.`);
-                }
-                const csvText = await response.text();
-                const maintenanceData = parseCSV(csvText);
-
-                // --- Caching Logic: Save the fresh data to cache ---
-                localStorage.setItem('maintenanceData', JSON.stringify(maintenanceData));
-                localStorage.setItem('maintenanceDataTimestamp', new Date().getTime());
-                // --- Caching Logic: End ---
-
-                displayData(maintenanceData); // Use the new function to display the data
-
-            } catch (error) {
-                console.error('Error fetching or processing data:', error);
-                let errorMessage = `<strong>Error:</strong> Could not load data.`;
-                if (error.message.includes('Failed to fetch')) {
-                    errorMessage += `<br><br>This is a browser security (CORS) error that happens when you open the file directly.`;
-                    errorMessage += `<br><br><strong>Solution:</strong> Use a tool like VS Code's "Live Server" extension to view this file.`;
-                } else {
-                    errorMessage += `<br><br>${error.message}`;
-                }
-                errorMessage += `<br><br>Check the developer console (F12) for more details.`;
-                tableBody.innerHTML = `
-                    <tr class="bg-red-900/50 !flex">
-                        <td colspan="5" class="text-left p-6 text-red-200 rounded-lg w-full">${errorMessage}</td>
-                    </tr>`;
-            }
-        }
-
         /**
          * Renders the maintenance data into the table.
-         * This function is separated to be called by both cached and fetched data.
          */
         function displayData(maintenanceData) {
             const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = ''; // Clear table (removes loading spinner or old data)
+            tableBody.innerHTML = '';
 
             if (!maintenanceData || maintenanceData.length === 0) {
-                tableBody.innerHTML = `
-                    <tr role="row" class="bg-gray-700 !flex">
-                        <td role="cell" colspan="5" class="text-center p-12 text-gray-400 rounded-lg w-full">
-                            No data found in the sheet.
-                        </td>
-                    </tr>`;
+                tableBody.innerHTML = `<tr role="row" class="bg-gray-700 !flex"><td role="cell" colspan="5" class="text-center p-12 text-gray-400 rounded-lg w-full">No data found in the sheet.</td></tr>`;
                 return;
             }
 
             maintenanceData.forEach(item => {
-                const status = item.Status ? item.Status.trim().toLowerCase() : '';
+                const status = (item.Status || '').trim().toLowerCase();
                 let rowClass = 'bg-gray-700 hover:bg-gray-600';
 
-                if (status.includes('in service')) {
-                    rowClass = 'bg-green-800/80 hover:bg-green-700/80';
-                } else if (status.includes('oos')) {
-                    rowClass = 'bg-red-800/80 hover:bg-red-700/80';
-                }
+                if (status.includes('in service')) rowClass = 'bg-green-800/80 hover:bg-green-700/80';
+                else if (status.includes('oos')) rowClass = 'bg-red-800/80 hover:bg-red-700/80';
 
                 const row = document.createElement('tr');
                 row.setAttribute('role', 'row');
                 row.className = `${rowClass} transition-colors duration-200`;
-
-                // Correctly map data to the table columns
                 row.innerHTML = `
                     <td role="cell" class="p-4 font-medium text-white w-1/5">${item.Unit || ''}</td>
                     <td role="cell" class="p-4 w-1/5">${item.Status || ''}</td>
@@ -186,55 +85,20 @@
                 `;
                 tableBody.appendChild(row);
             });
-
-            // Update the 'Last updated' timestamp
-            const timestampEl = document.getElementById('last-updated');
-            if (timestampEl) {
-                const now = new Date();
-                const formattedTime = now.toLocaleString('en-US', {
-                    dateStyle: 'full',
-                    timeStyle: 'medium',
-                    hour12: true,
-                    timeZone: 'America/New_York' 
-                });
-                timestampEl.textContent = `Last updated: ${formattedTime}`;
-            }
+            updateTimestamp();
         }
-
-        /**
-         * A more robust CSV parser that handles quoted fields containing commas.
-         */
-        function parseCSV(csvText) {
-            const lines = csvText.trim().split(/\r?\n/);
-            if (lines.length < 2) return [];
-
-            const headers = lines[0].split(',').map(h => h.trim());
-            const rows = [];
-            const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
-
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue; // Skip empty lines
-                const values = lines[i].match(regex) || [];
-                const rowObject = {};
-                headers.forEach((header, index) => {
-                    let value = values[index] ? values[index].trim() : '';
-                    if (value.startsWith('"') && value.endsWith('"')) {
-                        value = value.substring(1, value.length - 1).replace(/""/g, '"'); // Handle escaped quotes
-                    }
-                    rowObject[header] = value;
-                });
-                rows.push(rowObject);
-            }
-            return rows;
-        }
-
-        // Load the data when the page is ready
-        document.addEventListener('DOMContentLoaded', loadMaintenanceData);
         
-        // --- AUTO-REFRESH ---
-        // Reloads the data every 5 minutes (300,000 milliseconds).
-        setInterval(loadMaintenanceData, 300000);
-    </script>
+        function updateTimestamp() {
+            const el = document.getElementById('last-updated');
+            if(el) el.textContent = `Last updated: ${new Date().toLocaleString()}`;
+        }
 
+        function refreshData() {
+            loadSheetData(CONFIG.maintenanceSheetUrl, 'maintenanceData', displayData, 5);
+        }
+
+        document.addEventListener('DOMContentLoaded', refreshData);
+        setInterval(refreshData, (CONFIG.cacheDurationMinutes || 5) * 60 * 1000);
+    </script>
 </body>
 </html>
