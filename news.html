@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheet RSS Feed</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use the Inter font family */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple animation for feed items fading in */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .feed-item {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        /* Ensure card content takes full height to push footer down */
+        .feed-item > div {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-7xl">
+        <!-- Header Section -->
+        <header class="mb-8 text-center">
+            <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-2">DEPARTMENT NOTES</h1>
+        </header>
+
+        <!-- Main content area -->
+        <main>
+            <!-- Loading State: Displayed while data is being fetched -->
+            <div id="loading-indicator" class="text-center py-10">
+                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-4 text-gray-500 dark:text-gray-400">Fetching latest updates...</p>
+            </div>
+
+            <!-- Error Message: Displayed if the fetch fails -->
+            <div id="error-message" class="hidden bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg relative" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline">Could not fetch feed data. Please check the Google Sheet URL and make sure it's published correctly.</span>
+            </div>
+            
+            <!-- Feed Container: A responsive grid where notes are placed -->
+            <div id="feed-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feed items will be injected here by JavaScript -->
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Template for a single feed item. This is hidden and used by JavaScript to create new items. -->
+    <template id="feed-item-template">
+        <article class="feed-item bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200 dark:border-gray-700">
+            <div class="p-6">
+                <!-- Main content area -->
+                <div class="flex-grow">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3 text-center" data-title></h2>
+                    <p class="text-lg text-gray-600 dark:text-gray-300 mb-4" data-description></p>
+                </div>
+                <!-- Footer area for the date, now centered -->
+                <p class="text-sm text-gray-500 dark:text-gray-400 text-center border-t border-gray-200 dark:border-gray-700 pt-3 mt-4" data-date></p>
+            </div>
+        </article>
+    </template>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            // Your Google Sheet URL is now being used.
+            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=2014840002&single=true&output=csv';
+            // Set the refresh interval in milliseconds (e.g., 5 minutes = 5 * 60 * 1000)
+            const refreshInterval = 300000; 
+
+            // --- DOM ELEMENT REFERENCES ---
+            const feedContainer = document.getElementById('feed-container');
+            const template = document.getElementById('feed-item-template');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            let isFirstLoad = true;
+
+            /**
+             * Fetches and displays the feed data from the Google Sheet.
+             */
+            async function loadFeed() {
+                try {
+                    // Fetch data from the configured Google Sheet URL
+                    const response = await fetch(googleSheetUrl); 
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const csvText = await response.text();
+                    const items = parseCSV(csvText);
+
+                    // Reverse the array so the last entry in the sheet is first.
+                    items.reverse();
+
+                    displayItems(items);
+                    errorMessage.classList.add('hidden'); // Hide error on successful fetch
+
+                } catch (error) {
+                    console.error("Failed to load feed:", error);
+                    // Only show the main error message on the first load attempt
+                    if (isFirstLoad) {
+                        showError();
+                    }
+                } finally {
+                    // Only hide the main loading indicator after the first load
+                    if (isFirstLoad) {
+                        hideLoading();
+                        isFirstLoad = false;
+                    }
+                }
+            }
+
+            /**
+             * Parses raw CSV text into an array of objects.
+             * @param {string} text - The raw CSV string.
+             * @returns {Array<Object>} An array of objects, where each object represents a row.
+             */
+            function parseCSV(text) {
+                const lines = text.trim().split(/\r?\n/);
+                if (lines.length < 2) return [];
+
+                const headers = lines[0].split(',').map(header => header.trim());
+                const items = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    // This regex handles commas inside quoted fields
+                    const data = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                    const item = {};
+                    headers.forEach((header, index) => {
+                        let value = data[index] ? data[index].trim() : '';
+                        // Remove quotes from the beginning and end of the value if they exist
+                        if (value.startsWith('"') && value.endsWith('"')) {
+                            value = value.substring(1, value.length - 1);
+                        }
+                        item[header] = value;
+                    });
+                    items.push(item);
+                }
+                return items;
+            }
+            
+            /**
+             * Creates a feed item card from the template.
+             * @param {Object} item - The item data to populate the card with.
+             * @returns {DocumentFragment} The populated card element.
+             */
+            function createFeedCard(item) {
+                const card = template.content.cloneNode(true);
+                const titleEl = card.querySelector('[data-title]');
+                const descriptionEl = card.querySelector('[data-description]');
+                const dateEl = card.querySelector('[data-date]');
+
+                titleEl.textContent = item.Title || 'No Title';
+                descriptionEl.textContent = item.Description || '';
+                
+                // Check for PublishedDate to decide whether to show the footer
+                if (item.PublishedDate) {
+                    const date = new Date(item.PublishedDate);
+                    const formattedDate = date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    // Get the author from the PublishedBy column, with a fallback
+                    const author = item.PublishedBy || 'Anonymous';
+                    // Set the new footer format: (date) by (author)
+                    dateEl.textContent = `${formattedDate} by ${author}`;
+                } else {
+                    dateEl.style.display = 'none';
+                }
+                return card;
+            }
+
+            /**
+             * Renders the feed items into the grid layout.
+             * @param {Array<Object>} items - The array of item objects to display.
+             */
+            function displayItems(items) {
+                // Clear any existing content
+                feedContainer.innerHTML = ''; 
+
+                if (!items.length) {
+                    const noItemsMessage = document.createElement('p');
+                    noItemsMessage.className = 'text-center text-gray-500 dark:text-gray-400 md:col-span-2 lg:col-span-3';
+                    noItemsMessage.textContent = 'No items in the feed yet.';
+                    feedContainer.appendChild(noItemsMessage);
+                    return;
+                }
+
+                // Separate pinned items from regular items.
+                const pinnedItems = items.filter(item => item.Pinned && item.Pinned.toLowerCase() === 'yes');
+                const regularItems = items.filter(item => !item.Pinned || item.Pinned.toLowerCase() !== 'yes');
+
+                // Determine how many regular items to show, up to a max of 9 total items.
+                const maxItems = 9;
+                const regularItemsToShowCount = Math.max(0, maxItems - pinnedItems.length);
+
+                // Get the most recent regular items to display.
+                const recentRegularItems = regularItems.slice(0, regularItemsToShowCount);
+
+                // Combine the recent regular items with the pinned items at the end.
+                const finalItems = [...recentRegularItems, ...pinnedItems];
+
+                // Append the final list of items to the main container
+                finalItems.forEach(item => {
+                    const card = createFeedCard(item);
+                    feedContainer.appendChild(card);
+                });
+            }
+
+            /**
+             * Hides the loading indicator.
+             */
+            function hideLoading() {
+                loadingIndicator.style.display = 'none';
+            }
+
+            /**
+             * Shows the error message.
+             */
+            function showError() {
+                errorMessage.classList.remove('hidden');
+            }
+
+            // --- INITIALIZATION ---
+            // Initial load of the feed
+            loadFeed();
+
+            // Set up the automatic refresh interval
+            setInterval(loadFeed, refreshInterval);
+        });
+    </script>
+</body>
+</html>
+
