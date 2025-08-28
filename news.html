@@ -36,24 +36,28 @@
     <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-7xl">
         <!-- Header Section -->
         <header class="mb-8 text-center">
-            <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-2">DEPARTMENT NOTES</h1>
+            <!-- Increased font size for the main title -->
+            <h1 class="text-6xl font-bold text-gray-900 dark:text-white mb-2">DEPARTMENT NOTES</h1>
         </header>
 
         <!-- Main content area -->
         <main>
             <!-- Loading State: Displayed while data is being fetched -->
             <div id="loading-indicator" class="text-center py-10">
-                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="http://www.w3.org/2000/svg">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="mt-4 text-gray-500 dark:text-gray-400">Fetching latest updates...</p>
+                <!-- Increased font size for loading text -->
+                <p class="mt-4 text-lg text-gray-500 dark:text-gray-400">Fetching latest updates...</p>
             </div>
 
             <!-- Error Message: Displayed if the fetch fails -->
             <div id="error-message" class="hidden bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg relative" role="alert">
-                <strong class="font-bold">Error!</strong>
-                <span class="block sm:inline">Could not fetch feed data. Please check the Google Sheet URL and make sure it's published correctly.</span>
+                <!-- Increased font size for error title -->
+                <strong class="font-bold text-lg">Error!</strong>
+                <!-- Increased font size for error description -->
+                <span class="block sm:inline text-base">Could not fetch feed data. Please check the Google Sheet URL and make sure it's published correctly.</span>
             </div>
             
             <!-- Feed Container: A responsive grid where notes are placed -->
@@ -70,11 +74,14 @@
             <div class="p-6">
                 <!-- Main content area -->
                 <div class="flex-grow">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3 text-center" data-title></h2>
-                    <p class="text-lg text-gray-600 dark:text-gray-300 mb-4" data-description></p>
+                    <!-- Increased font size for card title -->
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-3 text-center" data-title></h2>
+                    <!-- Increased font size for card description -->
+                    <p class="text-xl text-gray-600 dark:text-gray-300 mb-4" data-description></p>
                 </div>
                 <!-- Footer area for the date, now centered -->
-                <p class="text-sm text-gray-500 dark:text-gray-400 text-center border-t border-gray-200 dark:border-gray-700 pt-3 mt-4" data-date></p>
+                <!-- Increased font size for card footer -->
+                <p class="text-base text-gray-500 dark:text-gray-400 text-center border-t border-gray-200 dark:border-gray-700 pt-3 mt-4" data-date></p>
             </div>
         </article>
     </template>
@@ -82,10 +89,20 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- CONFIGURATION ---
-            // Your Google Sheet URL is now being used.
-            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=2014840002&single=true&output=csv';
-            // Set the refresh interval in milliseconds (e.g., 5 minutes = 5 * 60 * 1000)
-            const refreshInterval = 300000; 
+            const config = {
+                // Your Google Sheet URL
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1982591100&single=true&output=csv',
+                // Refresh interval in milliseconds (e.g., 5 minutes = 5 * 60 * 1000)
+                refreshInterval: 300000,
+                // **IMPORTANT**: Update these values to match the column headers in your Google Sheet.
+                columnHeaders: {
+                    title: 'Title',
+                    description: 'Description',
+                    publishedDate: 'Published Date',
+                    publishedBy: 'Published By',
+                    pinned: 'Pinned Message?'
+                }
+            };
 
             // --- DOM ELEMENT REFERENCES ---
             const feedContainer = document.getElementById('feed-container');
@@ -100,7 +117,7 @@
             async function loadFeed() {
                 try {
                     // Fetch data from the configured Google Sheet URL
-                    const response = await fetch(googleSheetUrl); 
+                    const response = await fetch(config.googleSheetUrl); 
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -168,19 +185,20 @@
                 const descriptionEl = card.querySelector('[data-description]');
                 const dateEl = card.querySelector('[data-date]');
 
-                titleEl.textContent = item.Title || 'No Title';
-                descriptionEl.textContent = item.Description || '';
+                // Use the configured header names to get the data
+                titleEl.textContent = item[config.columnHeaders.title] || 'No Title';
+                descriptionEl.textContent = item[config.columnHeaders.description] || '';
                 
-                // Check for PublishedDate to decide whether to show the footer
-                if (item.PublishedDate) {
-                    const date = new Date(item.PublishedDate);
+                const publishedDate = item[config.columnHeaders.publishedDate];
+                if (publishedDate) {
+                    const date = new Date(publishedDate);
                     const formattedDate = date.toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
                     });
                     // Get the author from the PublishedBy column, with a fallback
-                    const author = item.PublishedBy || 'Anonymous';
+                    const author = item[config.columnHeaders.publishedBy] || 'Anonymous';
                     // Set the new footer format: (date) by (author)
                     dateEl.textContent = `${formattedDate} by ${author}`;
                 } else {
@@ -199,18 +217,20 @@
 
                 if (!items.length) {
                     const noItemsMessage = document.createElement('p');
-                    noItemsMessage.className = 'text-center text-gray-500 dark:text-gray-400 md:col-span-2 lg:col-span-3';
+                    // Increased font size for the "no items" message
+                    noItemsMessage.className = 'text-center text-lg text-gray-500 dark:text-gray-400 md:col-span-2 lg:col-span-3';
                     noItemsMessage.textContent = 'No items in the feed yet.';
                     feedContainer.appendChild(noItemsMessage);
                     return;
                 }
 
-                // Separate pinned items from regular items.
-                const pinnedItems = items.filter(item => item.Pinned && item.Pinned.toLowerCase() === 'yes');
-                const regularItems = items.filter(item => !item.Pinned || item.Pinned.toLowerCase() !== 'yes');
+                // Use the configured header name for 'Pinned'
+                const pinnedHeader = config.columnHeaders.pinned;
+                const pinnedItems = items.filter(item => item[pinnedHeader] && item[pinnedHeader].toLowerCase() === 'yes');
+                const regularItems = items.filter(item => !item[pinnedHeader] || item[pinnedHeader].toLowerCase() !== 'yes');
 
-                // Determine how many regular items to show, up to a max of 9 total items.
-                const maxItems = 9;
+                // Determine how many regular items to show, up to a max of 6 total items.
+                const maxItems = 6;
                 const regularItemsToShowCount = Math.max(0, maxItems - pinnedItems.length);
 
                 // Get the most recent regular items to display.
@@ -245,9 +265,8 @@
             loadFeed();
 
             // Set up the automatic refresh interval
-            setInterval(loadFeed, refreshInterval);
+            setInterval(loadFeed, config.refreshInterval);
         });
     </script>
 </body>
 </html>
-

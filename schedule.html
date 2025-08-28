@@ -1,126 +1,139 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMS Day Schedule</title>
+    <title>6-Day Crew Schedule</title>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for parsing CSV data from Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        #status-table tbody tr {
-            margin-bottom: 8px; display: flex; width: 100%; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        /* Custom font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        #status-table td, #status-table th {
-            padding: 1rem; display: flex; align-items: center;
-        }
-        #status-table td:first-child, #status-table th:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
-        #status-table td:last-child, #status-table th:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 p-4 sm:p-6 md:p-8">
-    <div class="max-w-7xl mx-auto">
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-2xl sm:text-3xl font-bold tracking-wider text-white uppercase">EMS Day Schedule</h1>
+            <h1 class="text-5xl md:text-6xl font-bold text-white">EMS DAY SCHEDULE</h1>
         </header>
 
-        <main>
-            <div class="bg-gray-800/50 rounded-lg p-4 shadow-lg">
-                <div class="overflow-x-auto">
-                    <table id="status-table" role="table" class="w-full text-left border-separate" style="border-spacing: 0;">
-                        <thead role="rowgroup" class="text-sm text-gray-400 uppercase">
-                            <tr role="row" class="flex w-full">
-                                <th role="columnheader" class="w-1/5">Date</th>
-                                <th role="columnheader" class="w-1/5">Time</th>
-                                <th role="columnheader" class="w-1/5">Crew Member 1</th>
-                                <th role="columnheader" class="w-1/5">Crew Member 2</th>
-                                <th role="columnheader" class="w-1/5">Trainee</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" role="rowgroup"></tbody>
-                    </table>
-                </div>
+        <!-- The schedule data will be loaded here -->
+        <div id="schedule-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading placeholder -->
+            <div id="loading-state" class="col-span-1 md:col-span-2 lg:col-span-3 text-center p-8">
+                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                 <p class="mt-4 text-gray-400">Fetching schedule data...</p>
             </div>
-        </main>
-        <footer class="text-center mt-8 text-sm text-gray-500">
-            <p id="last-updated">Last updated: --</p>
-        </footer>
+        </div>
     </div>
-    
-    <script src="config.js"></script>
-    <script src="common.js"></script>
+
     <script>
-        const DAYS_TO_SHOW = 10;
-        const TIME_ZONE = 'America/New_York';
+        // --- HOW TO GET YOUR GOOGLE SHEET URL ---
+        // 1. In your Google Sheet, go to File > Share > Publish to web.
+        // 2. In the "Link" tab, select the specific sheet you want to display.
+        // 3. In the dropdown next to it, select "Comma-separated values (.csv)".
+        // 4. Click the "Publish" button.
+        // 5. Copy the generated URL and paste it below, replacing the placeholder URL.
 
-        /** Helper to get the start of today in a specific timezone. */
-        function getTodayInTimeZone(timeZone) {
-            const now = new Date();
-            const formatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: timeZone });
-            const parts = formatter.formatToParts(now);
-            const year = parts.find(p => p.type === 'year').value;
-            const month = parts.find(p => p.type === 'month').value;
-            const day = parts.find(p => p.type === 'day').value;
-            return new Date(Date.UTC(year, month - 1, day));
-        }
-        
-        function displayData(scheduleData) {
-            const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = '';
-            
-            const today = getTodayInTimeZone(TIME_ZONE);
-            const endDate = new Date(today);
-            endDate.setDate(today.getDate() + DAYS_TO_SHOW);
+        const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=652905631&single=true&output=csv';
 
-            const filteredData = scheduleData
-                .map(item => {
-                    const dateParts = item.Date2 ? item.Date2.split('/') : [];
-                    // M/D/YYYY -> Date(YYYY, M-1, D)
-                    const parsedDate = dateParts.length === 3 ? new Date(Date.UTC(dateParts[2], dateParts[0] - 1, dateParts[1])) : null;
-                    return { ...item, parsedDate };
-                })
-                .filter(item => item.parsedDate && !isNaN(item.parsedDate) && item.parsedDate >= today && item.parsedDate < endDate)
-                .sort((a, b) => a.parsedDate - b.parsedDate);
+        // Function to fetch and display the schedule
+        function loadSchedule() {
+            const container = document.getElementById('schedule-container');
+            const loadingIndicator = document.getElementById('loading-state');
 
-            if (filteredData.length === 0) {
-                tableBody.innerHTML = `<tr role="row" class="bg-gray-700 !flex"><td role="cell" colspan="5" class="text-center p-12 text-gray-400 rounded-lg w-full">No upcoming shifts scheduled in the next ${DAYS_TO_SHOW} days.</td></tr>`;
-                updateTimestamp();
+            if (googleSheetUrl === 'YOUR_GOOGLE_SHEET_CSV_URL_HERE') {
+                loadingIndicator.innerHTML = `
+                    <h3 class="font-bold text-red-500 text-lg">Configuration Needed</h3>
+                    <p class="text-gray-300 mt-2">Please open this HTML file in a text editor and replace <strong>'YOUR_GOOGLE_SHEET_CSV_URL_HERE'</strong> with the actual URL from your published Google Sheet.</p>
+                `;
                 return;
             }
-            
-            const mostCurrentDate = filteredData[0].parsedDate;
 
-            filteredData.forEach(item => {
-                let rowClass = 'bg-gray-700 hover:bg-gray-600';
-                if (item.parsedDate.getTime() === mostCurrentDate.getTime()) {
-                    rowClass += ' ring-2 ring-yellow-400';
+            Papa.parse(googleSheetUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    container.innerHTML = ''; 
+
+                    if (!results.data || results.data.length === 0) {
+                        container.innerHTML = '<p class="col-span-full text-center text-gray-400">No schedule data found. Please check your Google Sheet.</p>';
+                        return;
+                    }
+
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    let futureEventsFound = false;
+                    let daysDisplayed = 0; // Counter for displayed days
+
+                    // Use a for...of loop to allow breaking out of it
+                    for (const row of results.data) {
+                        // Stop if we have already displayed 9 days
+                        if (daysDisplayed >= 9) {
+                            break;
+                        }
+
+                        if (row.Date) {
+                            const eventDate = new Date(row.Date);
+                            
+                            if (eventDate >= today) {
+                                futureEventsFound = true;
+                                daysDisplayed++; // Increment the counter
+
+                                const card = `
+                                    <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                                        <div class="p-6">
+                                            <div class="flex justify-between items-center mb-4">
+                                                <p class="text-lg font-semibold text-indigo-400 uppercase tracking-wide">${row.Date}</p>
+                                                <p class="text-lg font-medium text-gray-300 bg-gray-700 px-3 py-1 rounded-full">${row.Time || 'N/A'}</p>
+                                            </div>
+                                            <div class="space-y-4 text-gray-300 text-xl">
+                                                <div class="flex items-center">
+                                                    <svg class="h-7 w-7 text-gray-500 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                                                    <p><span class="font-medium text-gray-400">Crew:</span> ${row.CrewMember1 || 'Not Assigned'}</p>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <svg class="h-7 w-7 text-gray-500 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                                                    <p><span class="font-medium text-gray-400">Crew:</span> ${row.CrewMember2 || 'Not Assigned'}</p>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <svg class="h-7 w-7 text-gray-500 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" /></svg>
+                                                    <p><span class="font-medium text-gray-400">Trainee:</span> ${row.trainee || 'None'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                container.innerHTML += card;
+                            }
+                        }
+                    }
+
+                    if (!futureEventsFound) {
+                        container.innerHTML = '<p class="col-span-full text-center text-gray-400">No upcoming schedule found.</p>';
+                    }
+                },
+                error: function(error) {
+                    console.error("Error fetching or parsing data:", error);
+                    container.innerHTML = `
+                        <div class="col-span-full bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-center">
+                            <strong class="font-bold">Error!</strong>
+                            <span class="block sm:inline">Could not load the schedule. Please ensure the Google Sheet is published correctly and the URL is valid.</span>
+                        </div>
+                    `;
                 }
-
-                const row = document.createElement('tr');
-                row.setAttribute('role', 'row');
-                row.className = `${rowClass} transition-colors duration-200`;
-                row.innerHTML = `
-                    <td role="cell" class="font-medium text-white w-1/5">${item.Date2 || ''}</td>
-                    <td role="cell" class="w-1/5">${item.Time2 || ''}</td>
-                    <td role="cell" class="w-1/5">${item['Crew Member 1'] || ''}</td>
-                    <td role="cell" class="text-gray-300 w-1/5">${item['Crew Member 2'] || ''}</td>
-                    <td role="cell" class="text-gray-300 w-1/5">${item.Trainee || ''}</td>
-                `;
-                tableBody.appendChild(row);
             });
-            updateTimestamp();
         }
 
-        function updateTimestamp() {
-            const el = document.getElementById('last-updated');
-            if(el) el.textContent = `Last updated: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: false, timeZone: TIME_ZONE })}`;
-        }
-
-        function refreshData() {
-            loadSheetData(CONFIG.scheduleSheetUrl, 'scheduleData', displayData, 5);
-        }
-        
-        document.addEventListener('DOMContentLoaded', refreshData);
-        setInterval(refreshData, (CONFIG.cacheDurationMinutes || 5) * 60 * 1000);
+        document.addEventListener('DOMContentLoaded', loadSchedule);
     </script>
+
 </body>
 </html>
