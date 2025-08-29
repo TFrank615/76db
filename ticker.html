@@ -41,8 +41,8 @@
         .ticker-item {
             display: inline-block;
             margin: 0 2rem;
-            font-size: 1.25rem; /* 20px */
-            color: #D1D5DB; /* Light gray text */
+            font-size: 1.5rem; /* 24px - Changed */
+            color: #FFFFFF; /* White text - Changed */
         }
 
         /* Keyframe animation for the scroll effect */
@@ -63,28 +63,26 @@
 </head>
 <body>
 
-    <!-- The ticker container -->
     <div class="ticker-wrap">
         <div id="ticker-content" class="ticker-content">
-            <!-- Ticker items will be loaded here by JavaScript -->
-        </div>
+            </div>
     </div>
 
     <script>
         // --- CONFIGURATION ---
         // 1. Create a new Google Sheet.
-        // 2. In the first row, create three column headers: "Message", "StartDate", and "EndDate".
+        // 2. In the first row, create three column headers: "Message", "Start Date/Time", and "End Date/Time".
         //    - Message: The text you want to display.
-        //    - StartDate (Required): The date/time when the message should start appearing.
-        //    - EndDate (Required): The date/time when the message should stop appearing.
-        //    - Messages without BOTH a valid StartDate and EndDate will NOT be shown.
+        //    - Start Date/Time (Required): The date/time when the message should start appearing.
+        //    - End Date/Time (Required): The date/time when the message should stop appearing.
+        //    - Messages without BOTH a valid Start and End Date/Time will NOT be shown.
         // 3. IMPORTANT: Use a clear date format like YYYY-MM-DD or YYYY-MM-DD HH:MM.
         //    - Example: 2024-08-27 09:00
         // 4. Go to File > Share > Publish to web. Select the sheet and "CSV" format.
         // 5. Paste the generated URL here.
         const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=476473171&single=true&output=csv';
         const REFRESH_INTERVAL_MINUTES = 5;
-        const SCROLL_SPEED_FACTOR = 15; // Higher number = slower scroll.
+        const SCROLL_SPEED_FACTOR = 5; // Higher number = slower scroll.
         // -------------------
 
         /**
@@ -137,8 +135,8 @@
 
                 // Filter the data to only include messages that are currently active
                 const activeMessages = data.filter(row => {
-                    const startDateStr = row.StartDate;
-                    const endDateStr = row.EndDate;
+                    const startDateStr = row['Start Date/Time']; // Changed
+                    const endDateStr = row['End Date/Time'];   // Changed
 
                     // A message MUST have both a start date AND an end date to be considered.
                     if (!startDateStr || !endDateStr) {
