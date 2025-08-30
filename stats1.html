@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Department Statistics</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Use the Inter font family */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for the loading spinner */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">Department Live Statistics</h1>
+            <p id="last-updated" class="mt-2 text-gray-400">Fetching latest data...</p>
+        </header>
+
+        <!-- Statistics Grid -->
+        <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 md:gap-8">
+            
+            <!-- EMS Runs Card -->
+            <div class="bg-gray-800 border border-teal-500/30 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
+                <div class="flex justify-center items-center mx-auto bg-teal-500/10 rounded-full w-16 h-16 mb-4">
+                     <svg class="w-8 h-8 text-teal-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 11.25h-2.25v2.25H12v-2.25zM14.25 11.25h-2.25v2.25h2.25v-2.25zM12 13.5h-2.25v2.25H12v-2.25zM14.25 13.5h-2.25v2.25h2.25v-2.25z"/>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-300">EMS Runs</h2>
+                <p id="ems-runs" class="text-5xl font-bold text-teal-400 mt-2"><span class="loader"></span></p>
+            </div>
+
+            <!-- Fire Runs Card -->
+            <div class="bg-gray-800 border border-red-500/30 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
+                 <div class="flex justify-center items-center mx-auto bg-red-500/10 rounded-full w-16 h-16 mb-4">
+                    <svg class="w-8 h-8 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.362-3.797z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15a2.25 2.25 0 002.25-2.25V12a2.25 2.25 0 00-4.5 0v.75A2.25 2.25 0 0012 15z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-300">Fire Runs</h2>
+                <p id="fire-runs" class="text-5xl font-bold text-red-400 mt-2"><span class="loader"></span></p>
+            </div>
+
+            <!-- Combo Runs Card -->
+            <div class="bg-gray-800 border border-purple-500/30 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
+                <div class="flex justify-center items-center mx-auto bg-purple-500/10 rounded-full w-16 h-16 mb-4">
+                   <svg class="w-8 h-8 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-300">Combo Runs</h2>
+                <p id="combo-runs" class="text-5xl font-bold text-purple-400 mt-2"><span class="loader"></span></p>
+            </div>
+
+            <!-- MVAs Card -->
+            <div class="bg-gray-800 border border-blue-500/30 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
+                <div class="flex justify-center items-center mx-auto bg-blue-500/10 rounded-full w-16 h-16 mb-4">
+                    <svg class="w-8 h-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 003.375-3.375h1.5a1.125 1.125 0 011.125 1.125v-1.5a3.375 3.375 0 00-3.375-3.375H3.375m15.75 9.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 003.375-3.375h3.375c.621 0 1.125.504 1.125 1.125v9.75" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-300">MVAs</h2>
+                <p id="mvas" class="text-5xl font-bold text-blue-400 mt-2"><span class="loader"></span></p>
+            </div>
+            
+            <!-- Total Runs Card -->
+            <div class="bg-gray-800 border border-amber-500/30 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg sm:col-span-2 lg:col-span-1 xl:col-span-1">
+                 <div class="flex justify-center items-center mx-auto bg-amber-500/10 rounded-full w-16 h-16 mb-4">
+                    <svg class="w-8 h-8 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1.5-1.5m1.5 1.5l1.5-1.5m3.75 5.25v-1.5m0 1.5v1.5m0 0v1.5m0-1.5a1.5 1.5 0 001.5-1.5h-3a1.5 1.5 0 001.5 1.5zm-3.75-5.25h1.5m-1.5 0h-1.5m0 0v-1.5m1.5 1.5v-1.5" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-300">Total Runs</h2>
+                <p id="total-runs" class="text-5xl font-bold text-amber-400 mt-2"><span class="loader"></span></p>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 text-gray-500">
+            <p>Data sourced live from Google Sheets. Refreshes automatically.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // 1. Make your Google Sheet public ("File" > "Share" > "Publish to web").
+        //    Choose "Comma-separated values (.csv)" and publish.
+        // 2. Copy the generated link. It will look something like:
+        //    https://docs.google.com/spreadsheets/d/e/{LONG_ID}/pub?output=csv
+        // 3. Paste that link below, replacing the placeholder URL.
+
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1511491703&single=true&output=csv';
+        const REFRESH_INTERVAL_MS = 300000; // 5 minutes
+
+        // --- APPLICATION LOGIC ---
+        const statIds = {
+            'EMS Runs': 'ems-runs',
+            'Fire Runs': 'fire-runs',
+            'Combo Runs': 'combo-runs',
+            'MVAs': 'mvas',
+            'Total Runs': 'total-runs',
+        };
+
+        async function fetchAndDisplayStats() {
+            try {
+                const response = await fetch(GOOGLE_SHEET_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const csvText = await response.text();
+                const data = parseCSV(csvText);
+                updateUI(data);
+            } catch (error) {
+                console.error("Failed to fetch or process sheet data:", error);
+                displayError();
+            }
+        }
+        
+        function parseCSV(text) {
+            // Split the CSV text into rows, handling potential carriage returns
+            const rows = text.trim().split(/\r?\n/);
+            // Assume the first row is headers and the second row is data
+            if (rows.length < 2) {
+                console.warn("CSV has less than 2 rows. Check your sheet format.");
+                return {};
+            }
+            const headers = rows[0].split(',').map(h => h.trim());
+            const values = rows[1].split(',').map(v => v.trim());
+            
+            const data = {};
+            headers.forEach((header, index) => {
+                // Remove quotes that Google Sheets sometimes adds
+                const cleanHeader = header.replace(/"/g, '');
+                if(statIds[cleanHeader]) {
+                   data[cleanHeader] = values[index] ? values[index].replace(/"/g, '') : 'N/A';
+                }
+            });
+            return data;
+        }
+
+        function updateUI(data) {
+            let allDataFound = true;
+            for (const header in statIds) {
+                const elementId = statIds[header];
+                const element = document.getElementById(elementId);
+                if (element) {
+                    if (data[header] !== undefined) {
+                        element.textContent = data[header];
+                    } else {
+                        element.textContent = '???'; // Data for this header not found in sheet
+                        allDataFound = false;
+                    }
+                }
+            }
+
+            if (!allDataFound) {
+                 console.warn("Some headers in your Google Sheet do not match the expected headers: ", Object.keys(statIds));
+            }
+            
+            // Update the timestamp
+            const lastUpdatedElement = document.getElementById('last-updated');
+            const now = new Date();
+            lastUpdatedElement.textContent = `Last Updated: ${now.toLocaleTimeString()}`;
+        }
+
+        function displayError() {
+             for (const header in statIds) {
+                const elementId = statIds[header];
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = 'Error';
+                }
+             }
+             const lastUpdatedElement = document.getElementById('last-updated');
+             lastUpdatedElement.textContent = 'Could not load data. Check the URL and sheet permissions.';
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndDisplayStats(); // Fetch immediately on page load
+            setInterval(fetchAndDisplayStats, REFRESH_INTERVAL_MS); // Then refresh periodically
+        });
+    </script>
+</body>
+</html>
