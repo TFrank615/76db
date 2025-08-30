@@ -44,7 +44,7 @@
         <main>
             <!-- Loading State: Displayed while data is being fetched -->
             <div id="loading-indicator" class="text-center py-10">
-                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="http://www.w3.org/2000/svg">
+                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -57,7 +57,7 @@
                 <!-- Increased font size for error title -->
                 <strong class="font-bold text-lg">Error!</strong>
                 <!-- Increased font size for error description -->
-                <span class="block sm:inline text-base">Could not fetch feed data. Please check the Google Sheet URL and make sure it's published correctly.</span>
+                <span id="error-text" class="block sm:inline text-base">Could not fetch feed data. Please check the Google Sheet URL and make sure it's published correctly.</span>
             </div>
             
             <!-- Feed Container: A responsive grid where notes are placed -->
@@ -85,56 +85,56 @@
             </div>
         </article>
     </template>
-
+    
+    <script src="config.js"></script>
+    <script src="common.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- CONFIGURATION ---
-            const config = {
-                // Your Google Sheet URL
-                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1982591100&single=true&output=csv',
-                // Refresh interval in milliseconds (e.g., 5 minutes = 5 * 60 * 1000)
-                refreshInterval: 300000,
-                // **IMPORTANT**: Update these values to match the column headers in your Google Sheet.
-                columnHeaders: {
-                    title: 'Title',
-                    description: 'Description',
-                    publishedDate: 'Published Date',
-                    publishedBy: 'Published By',
-                    pinned: 'Pinned Message?'
-                }
-            };
+            // Configuration is now managed in config.js
+            const GOOGLE_SHEET_URL = CONFIG.newsSheetUrl;
+            const REFRESH_INTERVAL_MS = (CONFIG.cacheDurationMinutes || 5) * 60 * 1000;
+            const COLUMN_HEADERS = CONFIG.newsColumnHeaders;
 
             // --- DOM ELEMENT REFERENCES ---
             const feedContainer = document.getElementById('feed-container');
             const template = document.getElementById('feed-item-template');
             const loadingIndicator = document.getElementById('loading-indicator');
-            const errorMessage = document.getElementById('error-message');
+            const errorMessageContainer = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
             let isFirstLoad = true;
 
             /**
              * Fetches and displays the feed data from the Google Sheet.
              */
             async function loadFeed() {
+                if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes('PASTE_YOUR_')) {
+                    showError('Configuration Error: Please set `newsSheetUrl` in config.js');
+                    hideLoading();
+                    return;
+                }
+
                 try {
                     // Fetch data from the configured Google Sheet URL
-                    const response = await fetch(config.googleSheetUrl); 
+                    const response = await fetch(GOOGLE_SHEET_URL, { cache: 'no-cache' }); 
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const csvText = await response.text();
+                    // Using the parseCSV function from common.js
                     const items = parseCSV(csvText);
 
                     // Reverse the array so the last entry in the sheet is first.
                     items.reverse();
 
                     displayItems(items);
-                    errorMessage.classList.add('hidden'); // Hide error on successful fetch
+                    errorMessageContainer.classList.add('hidden'); // Hide error on successful fetch
 
                 } catch (error) {
                     console.error("Failed to load feed:", error);
                     // Only show the main error message on the first load attempt
                     if (isFirstLoad) {
-                        showError();
+                        showError(error.message);
                     }
                 } finally {
                     // Only hide the main loading indicator after the first load
@@ -143,35 +143,6 @@
                         isFirstLoad = false;
                     }
                 }
-            }
-
-            /**
-             * Parses raw CSV text into an array of objects.
-             * @param {string} text - The raw CSV string.
-             * @returns {Array<Object>} An array of objects, where each object represents a row.
-             */
-            function parseCSV(text) {
-                const lines = text.trim().split(/\r?\n/);
-                if (lines.length < 2) return [];
-
-                const headers = lines[0].split(',').map(header => header.trim());
-                const items = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    // This regex handles commas inside quoted fields
-                    const data = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-                    const item = {};
-                    headers.forEach((header, index) => {
-                        let value = data[index] ? data[index].trim() : '';
-                        // Remove quotes from the beginning and end of the value if they exist
-                        if (value.startsWith('"') && value.endsWith('"')) {
-                            value = value.substring(1, value.length - 1);
-                        }
-                        item[header] = value;
-                    });
-                    items.push(item);
-                }
-                return items;
             }
             
             /**
@@ -186,10 +157,10 @@
                 const dateEl = card.querySelector('[data-date]');
 
                 // Use the configured header names to get the data
-                titleEl.textContent = item[config.columnHeaders.title] || 'No Title';
-                descriptionEl.textContent = item[config.columnHeaders.description] || '';
+                titleEl.textContent = item[COLUMN_HEADERS.title] || 'No Title';
+                descriptionEl.textContent = item[COLUMN_HEADERS.description] || '';
                 
-                const publishedDate = item[config.columnHeaders.publishedDate];
+                const publishedDate = item[COLUMN_HEADERS.publishedDate];
                 if (publishedDate) {
                     const date = new Date(publishedDate);
                     const formattedDate = date.toLocaleDateString('en-US', {
@@ -198,7 +169,7 @@
                         day: 'numeric'
                     });
                     // Get the author from the PublishedBy column, with a fallback
-                    const author = item[config.columnHeaders.publishedBy] || 'Anonymous';
+                    const author = item[COLUMN_HEADERS.publishedBy] || 'Anonymous';
                     // Set the new footer format: (date) by (author)
                     dateEl.textContent = `${formattedDate} by ${author}`;
                 } else {
@@ -225,7 +196,7 @@
                 }
 
                 // Use the configured header name for 'Pinned'
-                const pinnedHeader = config.columnHeaders.pinned;
+                const pinnedHeader = COLUMN_HEADERS.pinned;
                 const pinnedItems = items.filter(item => item[pinnedHeader] && item[pinnedHeader].toLowerCase() === 'yes');
                 const regularItems = items.filter(item => !item[pinnedHeader] || item[pinnedHeader].toLowerCase() !== 'yes');
 
@@ -255,9 +226,11 @@
 
             /**
              * Shows the error message.
+             * @param {string} message - The error message to display.
              */
-            function showError() {
-                errorMessage.classList.remove('hidden');
+            function showError(message) {
+                errorText.textContent = message || "An unknown error occurred.";
+                errorMessageContainer.classList.remove('hidden');
             }
 
             // --- INITIALIZATION ---
@@ -265,9 +238,8 @@
             loadFeed();
 
             // Set up the automatic refresh interval
-            setInterval(loadFeed, config.refreshInterval);
+            setInterval(loadFeed, REFRESH_INTERVAL_MS);
         });
     </script>
 </body>
 </html>
-

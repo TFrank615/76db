@@ -43,14 +43,13 @@
 
     <!-- LeafletJS JavaScript -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
+    
+    <script src="config.js"></script>
     <script>
         // --- Initial Map Setup ---
-        // EDIT THESE COORDINATES to change the default location.
-        // The first value is Latitude, the second is Longitude.
-        // Example for London: [51.5072, -0.1276]
-        const mapCoordinates = [39.92, -83.61]; // Currently Columbus, Ohio area
-        const defaultZoom = 12.25;
+        // Map coordinates and zoom level are now managed in config.js
+        const mapCoordinates = [CONFIG.weatherConfig.latitude, CONFIG.weatherConfig.longitude];
+        const defaultZoom = CONFIG.weatherConfig.radarZoom;
 
         // Initialize the Leaflet map
         const map = L.map('map', { zoomControl: false }).setView(mapCoordinates, defaultZoom);
@@ -93,17 +92,15 @@
             }
         };
 
-        // --- Event Listeners ---
-        // (Event listeners removed as slider is gone)
-
         // --- Initial Load ---
         // Load the default radar layer when the page first loads.
         updateRadarLayer();
+        
+        // Refresh the radar layer periodically to get the latest data
+        // Using the same interval as the weather forecast for consistency
+        setInterval(updateRadarLayer, (CONFIG.weatherConfig.refreshIntervalMinutes || 15) * 60 * 1000);
 
     </script>
 
 </body>
 </html>
-
-
-

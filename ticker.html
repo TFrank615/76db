@@ -26,7 +26,6 @@
             overflow: hidden; /* Hides the text when it's outside the bar */
             box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
             border-top: 2px solid #1F2937;
-            display: none; /* Initially hidden */
         }
 
         /* The element that holds the text and scrolls */
@@ -40,9 +39,9 @@
         /* The text styling for each message */
         .ticker-item {
             display: inline-block;
-            margin: 0 2rem;
-            font-size: 1.5rem; /* 24px - Changed */
-            color: #FFFFFF; /* White text - Changed */
+            margin: 0 1rem;
+            font-size: 1.75rem; /* 24px */
+            color: #FFFFFF; /* White text */
         }
 
         /* Keyframe animation for the scroll effect */
@@ -70,20 +69,19 @@
 
     <script>
         // --- CONFIGURATION ---
-        // 1. Create a new Google Sheet.
-        // 2. In the first row, create three column headers: "Message", "Start Date/Time", and "End Date/Time".
-        //    - Message: The text you want to display.
-        //    - Start Date/Time (Required): The date/time when the message should start appearing.
-        //    - End Date/Time (Required): The date/time when the message should stop appearing.
-        //    - Messages without BOTH a valid Start and End Date/Time will NOT be shown.
-        // 3. IMPORTANT: Use a clear date format like YYYY-MM-DD or YYYY-MM-DD HH:MM.
-        //    - Example: 2024-08-27 09:00
-        // 4. Go to File > Share > Publish to web. Select the sheet and "CSV" format.
-        // 5. Paste the generated URL here.
         const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=476473171&single=true&output=csv';
-        const REFRESH_INTERVAL_MINUTES = 5;
+        const REFRESH_INTERVAL_MINUTES = 20;
         const SCROLL_SPEED_FACTOR = 5; // Higher number = slower scroll.
         // -------------------
+
+        /**
+         * Sends a message to the parent window to show/hide the ticker container.
+         * @param {boolean} isActive - Whether the ticker should be visible.
+         */
+        function notifyParent(isActive) {
+            window.parent.postMessage({ tickerActive: isActive }, '*');
+            console.log(`Notified parent: tickerActive = ${isActive}`);
+        }
 
         /**
          * Parses CSV text into an array of objects.
@@ -114,12 +112,11 @@
          * Fetches, filters, and displays the ticker data.
          */
         async function loadTickerData() {
-            const tickerWrap = document.querySelector('.ticker-wrap');
             const tickerContent = document.getElementById('ticker-content');
             
             if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL === 'PASTE_YOUR_TICKER_SHEET_CSV_URL_HERE') {
-                tickerContent.innerHTML = `<span class="ticker-item" style="color: #FBBF24;">Configuration Needed: Please paste your Google Sheet URL into the ticker.html script.</span>`;
-                tickerWrap.style.display = 'block'; // Show config error
+                tickerContent.innerHTML = `<span class="ticker-item" style="color: #FBBF24;">Configuration Needed: Please paste your Google Sheet URL.</span>`;
+                notifyParent(true); // Show config error
                 return;
             }
 
@@ -133,39 +130,24 @@
                 
                 const now = new Date();
 
-                // Filter the data to only include messages that are currently active
                 const activeMessages = data.filter(row => {
-                    const startDateStr = row['Start Date/Time']; // Changed
-                    const endDateStr = row['End Date/Time'];   // Changed
-
-                    // A message MUST have both a start date AND an end date to be considered.
-                    if (!startDateStr || !endDateStr) {
-                        return false;
-                    }
-
+                    const startDateStr = row['Start Date/Time'];
+                    const endDateStr = row['End Date/Time'];
+                    if (!startDateStr || !endDateStr) return false;
                     const startDate = new Date(startDateStr);
                     const endDate = new Date(endDateStr);
-
-                    // If either date is invalid, don't show the message.
-                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                        return false;
-                    }
-
-                    // The current time must be within the start and end date range.
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
                     return now >= startDate && now < endDate;
                 });
 
 
                 if (activeMessages.length === 0) {
-                    // Hide the entire ticker bar if there are no active messages
-                    tickerWrap.style.display = 'none';
+                    notifyParent(false);
                     return;
                 }
 
-                // If we have messages, ensure the ticker bar is visible
-                tickerWrap.style.display = 'block';
+                notifyParent(true);
 
-                // Build the HTML for the active ticker items
                 let tickerHTML = '';
                 let totalCharacters = 0;
                 activeMessages.forEach(row => {
@@ -177,23 +159,18 @@
                     }
                 });
 
-                // Duplicate content for a seamless loop
                 tickerContent.innerHTML = tickerHTML + tickerHTML;
 
-                // Dynamically adjust animation speed based on content length
                 const duration = Math.round(totalCharacters * SCROLL_SPEED_FACTOR / 10);
-                // Reset animation to ensure it picks up new duration
                 tickerContent.style.animation = 'none';
-                // A slight delay to allow the browser to apply the 'none' state before restarting
                 setTimeout(() => {
                     tickerContent.style.animation = `scroll-left ${duration}s linear infinite`;
                 }, 10);
 
-
             } catch (error) {
                 console.error('Error loading ticker data:', error);
-                tickerContent.innerHTML = `<span class="ticker-item" style="color: #F87171;">Error: Could not load ticker data. Check the URL and console.</span>`;
-                tickerWrap.style.display = 'block'; // Show the error
+                tickerContent.innerHTML = `<span class="ticker-item" style="color: #F87171;">Error: Could not load ticker data.</span>`;
+                notifyParent(true); // Show the error
             }
         }
 
@@ -205,3 +182,4 @@
     </script>
 </body>
 </html>
+

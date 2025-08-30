@@ -46,7 +46,7 @@
             <!-- EMS Runs Card -->
             <div class="bg-gray-800 border border-[#0D56A6]/30 rounded-2xl p-10 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
                 <div class="flex justify-center items-center mx-auto bg-[#0D56A6]/10 rounded-full w-28 h-28 mb-8">
-                     <img src="ems.png" alt="EMS Icon" class="w-20 h-20">
+                    <img src="ems.png" alt="EMS Icon" class="w-20 h-20">
                 </div>
                 <h2 class="text-3xl font-semibold text-gray-300">EMS Runs</h2>
                 <p id="ems-runs" class="text-7xl font-bold text-[#0D56A6] mt-2"><span class="loader"></span></p>
@@ -55,7 +55,7 @@
             <!-- Fire Runs Card -->
             <div class="bg-gray-800 border border-red-500/30 rounded-2xl p-10 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
                  <div class="flex justify-center items-center mx-auto bg-red-500/10 rounded-full w-28 h-28 mb-8">
-                     <img src="fire.png" alt="Fire Icon" class="w-20 h-20">
+                    <img src="fire.png" alt="Fire Icon" class="w-20 h-20">
                 </div>
                 <h2 class="text-3xl font-semibold text-gray-300">Fire Runs</h2>
                 <p id="fire-runs" class="text-7xl font-bold text-red-400 mt-2"><span class="loader"></span></p>
@@ -73,7 +73,7 @@
             <!-- MVAs Card -->
             <div class="bg-gray-800 border border-blue-500/30 rounded-2xl p-10 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg">
                 <div class="flex justify-center items-center mx-auto bg-blue-500/10 rounded-full w-28 h-28 mb-8">
-                     <img src="accident.png" alt="MVA Icon" class="w-20 h-20">
+                    <img src="accident.png" alt="MVA Icon" class="w-20 h-20">
                 </div>
                 <h2 class="text-3xl font-semibold text-gray-300">MVAs</h2>
                 <p id="mvas" class="text-7xl font-bold text-blue-400 mt-2"><span class="loader"></span></p>
@@ -82,7 +82,7 @@
             <!-- Total Runs Card -->
             <div class="bg-gray-800 border border-amber-500/30 rounded-2xl p-10 text-center transform hover:scale-105 transition-transform duration-300 ease-in-out shadow-lg md:col-span-2 lg:col-span-2">
                  <div class="flex justify-center items-center mx-auto bg-amber-500/10 rounded-full w-28 h-28 mb-8">
-                     <img src="total.png" alt="Total Icon" class="w-20 h-20">
+                    <img src="total.png" alt="Total Icon" class="w-20 h-20">
                 </div>
                 <h2 class="text-3xl font-semibold text-gray-300">Total Runs</h2>
                 <p id="total-runs" class="text-7xl font-bold text-amber-400 mt-2"><span class="loader"></span></p>
@@ -95,16 +95,14 @@
 
     </div>
 
+    <script src="config.js"></script>
+    <script src="common.js"></script>
     <script>
         // --- CONFIGURATION ---
-        // 1. Make your Google Sheet public ("File" > "Share" > "Publish to web").
-        //    Choose "Comma-separated values (.csv)" and publish.
-        // 2. Copy the generated link. It will look something like:
-        //    https://docs.google.com/spreadsheets/d/e/{LONG_ID}/pub?output=csv
-        // 3. Paste that link below, replacing the placeholder URL.
-
-        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1511491703&single=true&output=csv';
-        const REFRESH_INTERVAL_MS = 300000; // 5 minutes
+        // The Google Sheet URL and refresh interval are now managed in config.js
+        // Please add `statsSheetUrl` to your CONFIG object in config.js
+        const GOOGLE_SHEET_URL = CONFIG.statsSheetUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1511491703&single=true&output=csv';
+        const REFRESH_INTERVAL_MS = (CONFIG.cacheDurationMinutes || 5) * 60 * 1000;
 
         // --- APPLICATION LOGIC ---
         const statIds = {
@@ -116,40 +114,45 @@
         };
 
         async function fetchAndDisplayStats() {
+            if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes('PASTE_YOUR_')) {
+                displayError('Configuration Error: Please set `statsSheetUrl` in config.js');
+                return;
+            }
             try {
-                const response = await fetch(GOOGLE_SHEET_URL);
+                // Now using the URL from config.js
+                const response = await fetch(GOOGLE_SHEET_URL, { cache: 'no-cache' });
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
                 const csvText = await response.text();
-                const data = parseCSV(csvText);
+                // Using parseCSV from common.js. It returns an array of objects, so we take the first one.
+                const data = parseCSV(csvText)[0] || {};
                 updateUI(data);
             } catch (error) {
                 console.error("Failed to fetch or process sheet data:", error);
-                displayError();
+                displayError('Could not load data. Check the URL and sheet permissions.');
             }
         }
         
-        function parseCSV(text) {
-            // Split the CSV text into rows, handling potential carriage returns
-            const rows = text.trim().split(/\r?\n/);
-            // Assume the first row is headers and the second row is data
-            if (rows.length < 2) {
-                console.warn("CSV has less than 2 rows. Check your sheet format.");
-                return {};
-            }
-            const headers = rows[0].split(',').map(h => h.trim());
-            const values = rows[1].split(',').map(v => v.trim());
-            
-            const data = {};
-            headers.forEach((header, index) => {
-                // Remove quotes that Google Sheets sometimes adds
-                const cleanHeader = header.replace(/"/g, '');
-                if(statIds[cleanHeader]) {
-                   data[cleanHeader] = values[index] ? values[index].replace(/"/g, '') : 'N/A';
+        /**
+         * Animates a number from a start to an end value.
+         * @param {HTMLElement} obj The element to update.
+         * @param {number} start The starting number.
+         * @param {number} end The final number.
+         * @param {number} duration The animation duration in ms.
+         */
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentVal = Math.floor(progress * (end - start) + start);
+                obj.textContent = currentVal.toLocaleString(); // Format with commas
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
                 }
-            });
-            return data;
+            };
+            window.requestAnimationFrame(step);
         }
 
         function updateUI(data) {
@@ -158,8 +161,21 @@
                 const elementId = statIds[header];
                 const element = document.getElementById(elementId);
                 if (element) {
-                    if (data[header] !== undefined) {
-                        element.textContent = data[header];
+                    // Check if the property exists in the data object (case-sensitive)
+                    const dataKey = Object.keys(data).find(k => k.toLowerCase() === header.toLowerCase());
+                    if (dataKey && data[dataKey] !== undefined) {
+                        let currentValue = parseInt(element.textContent.replace(/,/g, ''));
+                        // If current content is not a number (spinner/error), start animation from 0.
+                        if (isNaN(currentValue)) {
+                            currentValue = 0;
+                        }
+                        const newValue = parseInt(data[dataKey].replace(/,/g, ''));
+
+                        if (!isNaN(newValue)) {
+                            animateValue(element, currentValue, newValue, 1500);
+                        } else {
+                            element.textContent = data[dataKey]; // Handle non-numeric data
+                        }
                     } else {
                         element.textContent = '???'; // Data for this header not found in sheet
                         allDataFound = false;
@@ -177,26 +193,24 @@
             lastUpdatedElement.textContent = `Last Updated: ${now.toLocaleTimeString()}`;
         }
 
-        function displayError() {
+        function displayError(message = 'An error occurred.') {
              for (const header in statIds) {
-                const elementId = statIds[header];
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.textContent = 'Error';
-                }
+                 const elementId = statIds[header];
+                 const element = document.getElementById(elementId);
+                 if (element) {
+                     element.textContent = 'Error';
+                 }
              }
              const lastUpdatedElement = document.getElementById('last-updated');
-             lastUpdatedElement.textContent = 'Could not load data. Check the URL and sheet permissions.';
+             lastUpdatedElement.textContent = message;
         }
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             fetchAndDisplayStats(); // Fetch immediately on page load
+            // Using refresh interval from config.js
             setInterval(fetchAndDisplayStats, REFRESH_INTERVAL_MS); // Then refresh periodically
         });
     </script>
 </body>
 </html>
-
-
-

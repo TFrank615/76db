@@ -51,13 +51,15 @@
         <div id="message-container" class="text-center p-12 text-gray-400"></div>
 
     </div>
-
+    
+    <script src="config.js"></script>
     <script>
         // --- CONFIGURATION ---
-        const LATITUDE = 39.95; // South Vienna, Ohio
-        const LONGITUDE = -83.6;  // South Vienna, Ohio
-        const LOCATION_NAME = "South Vienna, Ohio";
-        const REFRESH_INTERVAL_MINUTES = 15;
+        // All settings are now managed in config.js under the 'weatherConfig' object.
+        const LATITUDE = CONFIG.weatherConfig.latitude;
+        const LONGITUDE = CONFIG.weatherConfig.longitude;
+        const LOCATION_NAME = CONFIG.weatherConfig.locationName;
+        const REFRESH_INTERVAL_MINUTES = CONFIG.weatherConfig.refreshIntervalMinutes;
         // -------------------
 
         // WMO Weather code to icon mapping
