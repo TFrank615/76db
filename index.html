@@ -125,9 +125,9 @@
         const sources = [
           { iframe: `<iframe title="Google Slides" src="googleslides.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 45000 },
           { iframe: `<iframe title="Weather Radar" src="weather_radar.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 20000 },
-          { iframe: '<iframe title="News Feed" src="news.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
+          { iframe: '<iframe title="News Feed" src="news.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 }, // Example of a skipped slide
           { iframe: '<iframe title="Maintenance" src="maintenance.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
-          { iframe: '<iframe title="Trainings" src="trainings.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
+          { iframe: '<iframe title="Trainings" src="googlecalander.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
           { iframe: '<iframe title="EMS Schedule" src="schedule.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
           { iframe: `<iframe title="Weather Forecast" src="weather.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 20000 },
           { iframe: `<iframe title="Stats 1" src="stats1.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 20000 },
@@ -145,11 +145,24 @@
         }
 
         function rotateSlides() {
+          // Find the next source that has a duration greater than 0
+          let source = sources[contentIndex];
+          const initialIndex = contentIndex;
+
+          while (source.duration === 0) {
+            contentIndex = (contentIndex + 1) % sources.length;
+            source = sources[contentIndex];
+            // If we've looped through all sources and all have a duration of 0, stop to prevent an infinite loop.
+            if (contentIndex === initialIndex) {
+              console.error("All slides have a duration of 0. Halting rotation.");
+              return; 
+            }
+          }
+
           const nextSlideIndex = 1 - activeSlideIndex;
           const currentSlide = slideDivs[activeSlideIndex];
           const nextSlide = slideDivs[nextSlideIndex];
-          const source = sources[contentIndex];
-
+          
           nextSlide.innerHTML = source.iframe;
           const iframe = nextSlide.querySelector('iframe');
           
@@ -185,6 +198,7 @@
               slideDivs[0].classList.remove('opacity-0');
               slideDivs[0].classList.add('opacity-100');
               activeSlideIndex = 0;
+              // If the first slide has a duration of 0, this will fire immediately
               setTimeout(() => {
                   contentIndex = 1;
                   rotateSlides();
@@ -305,4 +319,3 @@
 
 </body>
 </html>
-

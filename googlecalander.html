@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Calendar Sync</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FullCalendar scripts are no longer needed and have been removed -->
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* All FullCalendar-specific CSS has been removed */
+        .event-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .event-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white">EVENTS - TRAININGS - IMPORTANT DATES</h1>
+            <p class="text-xl text-gray-400 mt-3"></p>
+        </header>
+
+        <!-- Configuration Section (hidden, but holds the credentials) -->
+        <div class="hidden">
+            <input type="password" id="apiKey" value="AIzaSyA3GRJ6eD0DSVkk0eblWxvNAspvELfEXPU">
+            <input type="email" id="calendarId" value="94e368189a926a957a0c9c43138f0c06256f0f17521b1e1b8749ccf63a1a61e7@group.calendar.google.com">
+        </div>
+        
+        <!-- Events will be displayed here -->
+        <div id="events-container" class="flex flex-wrap gap-6 justify-center">
+             <div id="events-placeholder" class="text-center py-20 text-gray-400">
+                <p class="text-lg">Loading events...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const apiKeyInput = document.getElementById('apiKey');
+            const calendarIdInput = document.getElementById('calendarId');
+            const eventsContainer = document.getElementById('events-container');
+            const eventsPlaceholder = document.getElementById('events-placeholder');
+            
+            // The stringToColor function has been removed to make all cards a single color.
+
+            // Function to format date/time nicely
+            function formatEventDate(eventStart) {
+                if (!eventStart) return '';
+                // Handles both all-day events (date) and timed events (dateTime)
+                const dateStr = eventStart.date || eventStart.dateTime;
+                if (!dateStr) return '';
+                
+                const date = new Date(dateStr);
+                // Use options to format the date clearly
+                const options = { month: 'short', day: 'numeric', year: 'numeric' };
+                return date.toLocaleDateString('en-US', options);
+            }
+
+            async function loadEvents() {
+                const apiKey = apiKeyInput.value.trim();
+                const calendarId = calendarIdInput.value.trim();
+
+                if (!apiKey || !calendarId) {
+                    eventsPlaceholder.innerHTML = '<p class="text-red-500">API Key or Calendar ID is missing.</p>';
+                    return;
+                }
+                
+                // Fetch only future events, sorted by start time
+                const timeMin = new Date().toISOString();
+                const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${timeMin}&singleEvents=true&orderBy=startTime`;
+
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error(`Google Calendar API error: ${response.statusText}`);
+                    }
+                    const data = await response.json();
+
+                    // Clear the placeholder
+                    eventsContainer.innerHTML = '';
+
+                    if (data.items && data.items.length > 0) {
+                        data.items.forEach(event => {
+                            if (!event.summary) return; // Skip events without a title
+
+                            const eventCard = document.createElement('div');
+                            // Use justify-between to push the location footer to the bottom
+                            eventCard.className = 'event-card flex flex-col justify-between p-6 rounded-lg text-white w-full sm:w-96 min-h-[200px]';
+                            
+                            // Set a single, consistent color for all event cards
+                            eventCard.style.backgroundColor = '#374151'; // A neutral dark gray
+
+                            const eventDate = formatEventDate(event.start);
+                            const descriptionHTML = event.description ? `<p class="text-base font-normal opacity-80 mt-2">${event.description}</p>` : '';
+                            const locationHTML = event.location ? `<div class="text-sm font-medium opacity-70 mt-4 pt-3 border-t border-gray-500">${event.location}</div>` : '';
+
+
+                            eventCard.innerHTML = `
+                                <div>
+                                    <span class="text-base font-medium opacity-90 mb-2">${eventDate}</span>
+                                    <div>
+                                        <span class="font-bold text-xl block w-full text-center">${event.summary}</span>
+                                        ${descriptionHTML}
+                                    </div>
+                                </div>
+                                ${locationHTML}
+                            `;
+                            eventsContainer.appendChild(eventCard);
+                        });
+                    } else {
+                        eventsPlaceholder.innerHTML = '<p class="text-lg">No upcoming events found.</p>';
+                        eventsContainer.appendChild(eventsPlaceholder);
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching calendar events:', error);
+                    eventsPlaceholder.innerHTML = `<p class="text-red-500 text-lg">Failed to load events. Check the console for details.</p>`;
+                    eventsContainer.appendChild(eventsPlaceholder);
+                }
+            }
+            
+            // Automatically load the events on page load
+            loadEvents();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
