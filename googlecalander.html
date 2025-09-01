@@ -26,7 +26,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 antialiased h-screen overflow-hidden">
+<body class="bg-gray-900 text-gray-200 antialiased">
 
     <div class="container mx-auto p-4 md:p-8 max-w-7xl h-full flex flex-col">
         <header class="text-center mb-12 flex-shrink-0">
@@ -40,8 +40,8 @@
             <input type="email" id="calendarId" value="94e368189a926a957a0c9c43138f0c06256f0f17521b1e1b8749ccf63a1a61e7@group.calendar.google.com">
         </div>
         
-        <!-- This wrapper will grow to fill available space and hide overflow -->
-        <div class="flex-grow overflow-hidden">
+        <!-- This wrapper will grow to fill available space -->
+        <div class="flex-grow">
             <!-- Events will be displayed here -->
             <div id="events-container" class="flex flex-wrap gap-6 justify-center">
                  <div id="events-placeholder" class="text-center py-20 text-gray-400">
@@ -73,21 +73,23 @@
                 return date.toLocaleDateString('en-US', options);
             }
 
-            // This function calculates how many events fit and renders them
+            // This function renders a maximum of 9 events
             function renderVisibleEvents() {
                 const wrapper = document.querySelector('.flex-grow');
                 if (!wrapper) return;
 
                 // Clear the container before re-calculating
                 eventsContainer.innerHTML = '';
-                const visibleHeight = wrapper.clientHeight;
 
                 if (allEvents.length === 0) {
                     eventsContainer.innerHTML = `<div id="events-placeholder" class="text-center py-20 text-gray-400"><p class="text-lg">No upcoming events found.</p></div>`;
                     return;
                 }
 
-                for (const event of allEvents) {
+                // Create a new array with only the first 9 events
+                const eventsToShow = allEvents.slice(0, 9);
+
+                for (const event of eventsToShow) {
                     if (!event.summary) continue; // Skip events without a title
 
                     const eventCard = document.createElement('div');
@@ -112,14 +114,6 @@
                         ${locationHTML}
                     `;
                     eventsContainer.appendChild(eventCard);
-                    
-                    // NEW CHECK: Compare the total content scroll height to the visible height of the wrapper.
-                    // This is more reliable than checking individual element offsets.
-                    if (eventsContainer.scrollHeight > visibleHeight) {
-                        // If the content is now taller than the visible area, remove the card we just added and stop.
-                        eventCard.remove();
-                        break;
-                    }
                 }
             }
 
