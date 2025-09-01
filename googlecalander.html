@@ -58,7 +58,7 @@
             const eventsContainer = document.getElementById('events-container');
             const eventsPlaceholder = document.getElementById('events-placeholder');
             
-            // The stringToColor function has been removed to make all cards a single color.
+            let allEvents = []; // Store all fetched events here
 
             // Function to format date/time nicely
             function formatEventDate(eventStart) {
@@ -71,6 +71,56 @@
                 // Use options to format the date clearly
                 const options = { month: 'short', day: 'numeric', year: 'numeric' };
                 return date.toLocaleDateString('en-US', options);
+            }
+
+            // This function calculates how many events fit and renders them
+            function renderVisibleEvents() {
+                const wrapper = document.querySelector('.flex-grow');
+                if (!wrapper) return;
+
+                // Clear the container before re-calculating
+                eventsContainer.innerHTML = '';
+                const visibleHeight = wrapper.clientHeight;
+
+                if (allEvents.length === 0) {
+                    eventsContainer.innerHTML = `<div id="events-placeholder" class="text-center py-20 text-gray-400"><p class="text-lg">No upcoming events found.</p></div>`;
+                    return;
+                }
+
+                for (const event of allEvents) {
+                    if (!event.summary) continue; // Skip events without a title
+
+                    const eventCard = document.createElement('div');
+                    // Use justify-between to push the location footer to the bottom
+                    eventCard.className = 'event-card flex flex-col justify-between p-6 rounded-lg text-white w-full sm:w-96 min-h-[200px]';
+                    
+                    // Set a single, consistent color for all event cards
+                    eventCard.style.backgroundColor = '#374151'; // A neutral dark gray
+
+                    const eventDate = formatEventDate(event.start);
+                    const descriptionHTML = event.description ? `<p class="text-base font-normal opacity-80 mt-2">${event.description}</p>` : '';
+                    const locationHTML = event.location ? `<div class="text-sm font-medium opacity-70 mt-4 pt-3 border-t border-gray-500">${event.location}</div>` : '';
+
+                    eventCard.innerHTML = `
+                        <div>
+                            <span class="text-base font-medium opacity-90 mb-2">${eventDate}</span>
+                            <div>
+                                <span class="font-bold text-xl block w-full text-center">${event.summary}</span>
+                                ${descriptionHTML}
+                            </div>
+                        </div>
+                        ${locationHTML}
+                    `;
+                    eventsContainer.appendChild(eventCard);
+                    
+                    // NEW CHECK: Compare the total content scroll height to the visible height of the wrapper.
+                    // This is more reliable than checking individual element offsets.
+                    if (eventsContainer.scrollHeight > visibleHeight) {
+                        // If the content is now taller than the visible area, remove the card we just added and stop.
+                        eventCard.remove();
+                        break;
+                    }
+                }
             }
 
             async function loadEvents() {
@@ -93,56 +143,35 @@
                     }
                     const data = await response.json();
 
-                    // Clear the placeholder
-                    eventsContainer.innerHTML = '';
-
+                    // Store the fetched events
                     if (data.items && data.items.length > 0) {
-                        data.items.forEach(event => {
-                            if (!event.summary) return; // Skip events without a title
-
-                            const eventCard = document.createElement('div');
-                            // Use justify-between to push the location footer to the bottom
-                            eventCard.className = 'event-card flex flex-col justify-between p-6 rounded-lg text-white w-full sm:w-96 min-h-[200px]';
-                            
-                            // Set a single, consistent color for all event cards
-                            eventCard.style.backgroundColor = '#374151'; // A neutral dark gray
-
-                            const eventDate = formatEventDate(event.start);
-                            const descriptionHTML = event.description ? `<p class="text-base font-normal opacity-80 mt-2">${event.description}</p>` : '';
-                            const locationHTML = event.location ? `<div class="text-sm font-medium opacity-70 mt-4 pt-3 border-t border-gray-500">${event.location}</div>` : '';
-
-
-                            eventCard.innerHTML = `
-                                <div>
-                                    <span class="text-base font-medium opacity-90 mb-2">${eventDate}</span>
-                                    <div>
-                                        <span class="font-bold text-xl block w-full text-center">${event.summary}</span>
-                                        ${descriptionHTML}
-                                    </div>
-                                </div>
-                                ${locationHTML}
-                            `;
-                            eventsContainer.appendChild(eventCard);
-                        });
+                        allEvents = data.items;
                     } else {
-                        eventsPlaceholder.innerHTML = '<p class="text-lg">No upcoming events found.</p>';
-                        eventsContainer.appendChild(eventsPlaceholder);
+                        allEvents = [];
                     }
+                    
+                    // Do the initial render
+                    renderVisibleEvents();
 
                 } catch (error) {
                     console.error('Error fetching calendar events:', error);
-                    eventsPlaceholder.innerHTML = `<p class="text-red-500 text-lg">Failed to load events. Check the console for details.</p>`;
-                    eventsContainer.appendChild(eventsPlaceholder);
+                    eventsContainer.innerHTML = ''; // Clear loading message
+                    const placeholder = document.getElementById('events-placeholder') || document.createElement('div');
+                    placeholder.innerHTML = `<p class="text-red-500 text-lg">Failed to load events. Check the console for details.</p>`;
+                    if (!document.getElementById('events-placeholder')) {
+                        eventsContainer.appendChild(placeholder);
+                    }
                 }
             }
             
             // Automatically load the events on page load
             loadEvents();
+            
+            // Re-render the visible events when the window is resized
+            window.addEventListener('resize', renderVisibleEvents);
         });
     </script>
 </body>
 </html>
-
-
 
 
