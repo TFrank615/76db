@@ -69,7 +69,7 @@
   <script src="config.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
 
         // ------------------------------
         // Ticker Communication
@@ -123,9 +123,9 @@
         // Slide Rotation Logic
         // ------------------------------
         const sources = [
-          { iframe: `<iframe title="Google Slides" src="googleslides.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 45000 },
+          { type: 'googleslides', iframe: ``, duration: 20000 }, // Placeholder, will be replaced by script
           { iframe: `<iframe title="Weather Radar" src="weather_radar.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 20000 },
-          { iframe: '<iframe title="News Feed" src="news.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 }, // Example of a skipped slide
+          { iframe: '<iframe title="News Feed" src="news.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
           { iframe: '<iframe title="Maintenance" src="maintenance.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
           { iframe: '<iframe title="Trainings" src="googlecalander.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
           { iframe: '<iframe title="EMS Schedule" src="schedule.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
@@ -136,6 +136,48 @@
         const slideDivs = document.querySelectorAll('.slide');
         let contentIndex = 0;
         let activeSlideIndex = 0;
+        
+        // --- NEW: Function to dynamically set up Google Slides ---
+        async function setupGoogleSlides() {
+            const slidesConfig = CONFIG.googleSlides;
+            const slidesSource = sources.find(s => s.type === 'googleslides');
+
+            if (!slidesConfig || !slidesConfig.scriptUrl || slidesConfig.scriptUrl.includes('PASTE')) {
+                console.error("Google Slides Apps Script URL is not configured in config.js. Using default duration and showing error message.");
+                slidesSource.iframe = `<div class="w-full h-full flex items-center justify-center bg-gray-800 text-yellow-300 p-8 text-center text-2xl"><strong>Configuration Needed:</strong><br>Please set your Google Slides Apps Script URL in <strong>config.js</strong>.</div>`;
+                return;
+            }
+
+            try {
+                const response = await fetch(slidesConfig.scriptUrl, { cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch slide count. Status: ${response.status}. Ensure the script is deployed correctly with "Anyone" access.`);
+                }
+                const slideCount = parseInt(await response.text(), 10);
+                if (isNaN(slideCount) || slideCount <= 0) {
+                    throw new Error(`Invalid slide count received: ${slideCount}`);
+                }
+
+                const delayMs = slidesConfig.delayPerSlideSeconds * 1000;
+                const totalDuration = slideCount * delayMs;
+
+                const embedUrl = `${slidesConfig.embedUrlBase}&delayms=${delayMs}`;
+                const iframeHtml = `<iframe title="Google Slides" src="${embedUrl}" frameborder="0" class="w-full h-full"></iframe>`;
+
+                if (slidesSource) {
+                    slidesSource.iframe = iframeHtml;
+                    slidesSource.duration = totalDuration;
+                    console.log(`Google Slides configured with ${slideCount} slides for a total duration of ${totalDuration / 1000}s.`);
+                }
+
+            } catch (error) {
+                console.error("Error setting up Google Slides:", error);
+                if(slidesSource){
+                    slidesSource.iframe = `<div class="w-full h-full flex items-center justify-center bg-gray-800 text-red-400 p-8 text-center text-2xl"><strong>Error:</strong><br>Could not load Google Slides count.<br>${error.message}</div>`;
+                }
+            }
+        }
+
 
         function scheduleNextSlide(duration) {
             setTimeout(() => {
@@ -145,14 +187,12 @@
         }
 
         function rotateSlides() {
-          // Find the next source that has a duration greater than 0
           let source = sources[contentIndex];
           const initialIndex = contentIndex;
 
           while (source.duration === 0) {
             contentIndex = (contentIndex + 1) % sources.length;
             source = sources[contentIndex];
-            // If we've looped through all sources and all have a duration of 0, stop to prevent an infinite loop.
             if (contentIndex === initialIndex) {
               console.error("All slides have a duration of 0. Halting rotation.");
               return; 
@@ -167,7 +207,7 @@
           const iframe = nextSlide.querySelector('iframe');
           
           const transition = () => {
-            if (nextSlide.classList.contains('opacity-100')) return; // Already visible
+            if (nextSlide.classList.contains('opacity-100')) return;
             currentSlide.classList.remove('opacity-100');
             currentSlide.classList.add('opacity-0');
             
@@ -178,40 +218,47 @@
             scheduleNextSlide(source.duration);
           };
           
-          iframe.onload = transition;
-          iframe.onerror = () => {
-            console.error("Iframe failed to load:", source.iframe);
-            transition();
-          };
-          
-          // Failsafe timeout in case onload doesn't fire
-          setTimeout(transition, 500);
+          if (iframe) {
+            iframe.onload = transition;
+            iframe.onerror = () => {
+              console.error("Iframe failed to load:", source.iframe);
+              transition();
+            };
+            setTimeout(transition, 500); // Failsafe
+          } else {
+             // For error messages which don't have an iframe
+             transition();
+          }
         }
 
-        function startRotation() {
+        async function startRotation() {
+          await setupGoogleSlides(); // Wait for slide configuration to finish
+
           const firstSource = sources[0];
           slideDivs[0].innerHTML = firstSource.iframe;
-          const firstIframe = slideDivs[0].querySelector('iframe');
-
+          
           const transition = () => {
-              if (slideDivs[0].classList.contains('opacity-100')) return; // Already visible
+              if (slideDivs[0].classList.contains('opacity-100')) return;
               slideDivs[0].classList.remove('opacity-0');
               slideDivs[0].classList.add('opacity-100');
               activeSlideIndex = 0;
-              // If the first slide has a duration of 0, this will fire immediately
               setTimeout(() => {
                   contentIndex = 1;
                   rotateSlides();
               }, firstSource.duration);
           };
-
-          firstIframe.onload = transition;
-          firstIframe.onerror = () => {
-              console.error("First iframe failed to load:", firstSource.iframe);
-              transition();
-          };
-          // Failsafe timeout
-          setTimeout(transition, 500);
+          
+          const firstIframe = slideDivs[0].querySelector('iframe');
+          if(firstIframe) {
+            firstIframe.onload = transition;
+            firstIframe.onerror = () => {
+                console.error("First iframe failed to load:", firstSource.iframe);
+                transition();
+            };
+             setTimeout(transition, 500); // Failsafe
+          } else {
+            transition();
+          }
         }
 
         startRotation();
@@ -219,12 +266,8 @@
         // ------------------------------
         // IPAWS / NWS Alert System
         // ------------------------------
-        // Configuration for IPAWS/NWS alerts.
-        // To find your zone, go to https://alerts.weather.gov/
-        // Click on your state, then find your county/zone in the list.
-        // The zone code is typically in the format of STZXXX (e.g., OHZ053 for Clark County, OH).
         const IPAWS_CONFIG = {
-            ZONE: 'OHZ053', // Your county/zone code
+            ZONE: CONFIG.nwsAlertZone,
             REFRESH_INTERVAL_SECONDS: 300 // 5 minutes
         };
 
@@ -242,11 +285,8 @@
             if (data.features && data.features.length > 0) {
               for (const feature of data.features) {
                 const alertId = feature.id;
-                // Check if we haven't shown this alert before.
                 if (!shownAlerts.has(alertId)) {
                   const alert = feature.properties;
-                  // We will display all new alerts for the specified zone, regardless of severity.
-                  // For a local dashboard, all alerts are likely relevant.
                   newAlertMessages.push(alert.headline);
                   shownAlerts.add(alertId);
                 }
@@ -255,7 +295,6 @@
             
             if (newAlertMessages.length > 0) {
               const fullMessage = newAlertMessages.join(' <span class="text-gray-500 mx-4">|||</span> ');
-              // Show the alert overlay. Increase duration for multiple alerts.
               const displayDuration = 60000 * newAlertMessages.length;
               showIPAWSAlert(fullMessage, displayDuration);
             }
@@ -266,7 +305,6 @@
 
         function showIPAWSAlert(message, duration) {
           const overlay = document.getElementById("ipawsAlertOverlay");
-          // Use innerHTML to render the separator styling
           overlay.innerHTML = message;
           overlay.classList.remove('invisible', 'opacity-0');
           overlay.classList.add('opacity-100');
@@ -280,27 +318,21 @@
         // ------------------------------
         // Toolbar Weather Widget
         // ------------------------------
-        const WEATHER_CONFIG = {
-            LATITUDE: 39.95, // South Vienna, Ohio
-            LONGITUDE: -83.6,
-            LOCATION_NAME: "South Vienna",
-            REFRESH_INTERVAL_MINUTES: 15,
-            CONDITIONS: {
+        async function fetchToolbarWeather() {
+            const weather = CONFIG.weatherConfig;
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${weather.latitude}&longitude=${weather.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
+            const tempEl = document.getElementById('weather-temp');
+            const conditionEl = document.getElementById('weather-condition');
+            const highLowEl = document.getElementById('weather-high-low');
+            const locationEl = document.getElementById('weather-location');
+            const CONDITIONS = {
                 0: "Clear", 1: "Clear", 2: "Cloudy", 3: "Overcast", 45: "Fog", 48: "Fog",
                 51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 56: "Freezing Drizzle", 57: "Freezing Drizzle",
                 61: "Rain", 63: "Rain", 65: "Rain", 66: "Freezing Rain", 67: "Freezing Rain",
                 71: "Snow", 73: "Snow", 75: "Snow", 77: "Snow",
                 80: "Showers", 81: "Showers", 82: "Showers", 85: "Snow Showers", 86: "Snow Showers",
                 95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm"
-            }
-        };
-
-        async function fetchToolbarWeather() {
-            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_CONFIG.LATITUDE}&longitude=${WEATHER_CONFIG.LONGITUDE}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
-            const tempEl = document.getElementById('weather-temp');
-            const conditionEl = document.getElementById('weather-condition');
-            const highLowEl = document.getElementById('weather-high-low');
-            const locationEl = document.getElementById('weather-location');
+            };
 
             try {
                 const response = await fetch(apiUrl);
@@ -310,11 +342,11 @@
                 const temp = Math.round(data.current.temperature_2m);
                 const high = Math.round(data.daily.temperature_2m_max[0]);
                 const low = Math.round(data.daily.temperature_2m_min[0]);
-                const condition = WEATHER_CONFIG.CONDITIONS[data.current.weather_code] || 'N/A';
+                const condition = CONDITIONS[data.current.weather_code] || 'N/A';
 
                 tempEl.textContent = `${temp}°`;
                 conditionEl.textContent = condition;
-                locationEl.textContent = WEATHER_CONFIG.LOCATION_NAME;
+                locationEl.textContent = weather.locationName;
                 highLowEl.textContent = `H: ${high}° L: ${low}°`;
 
             } catch (error) {
@@ -329,7 +361,7 @@
         fetchIPAWSAlerts();
         fetchToolbarWeather();
         setInterval(fetchIPAWSAlerts, IPAWS_CONFIG.REFRESH_INTERVAL_SECONDS * 1000);
-        setInterval(fetchToolbarWeather, WEATHER_CONFIG.REFRESH_INTERVAL_MINUTES * 60 * 1000);
+        setInterval(fetchToolbarWeather, CONFIG.weatherConfig.refreshIntervalMinutes * 60 * 1000);
     });
   </script>
 
