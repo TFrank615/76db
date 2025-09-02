@@ -19,7 +19,12 @@ const CONFIG = {
 
         // Default time (in seconds) to show each individual slide.
         // The script will set the correct delay in the URL automatically.
-        delayPerSlideSeconds: 15.5 
+        delayPerSlideSeconds: 15.5,
+
+        // How often (in minutes) to re-check the Apps Script for an updated slide count.
+        // This allows the dashboard to automatically adjust timing if you add/remove slides.
+        // Set to 0 to disable this auto-refresh feature.
+        refreshIntervalMinutes: 15
     },
 
     // Google Sheet URLs

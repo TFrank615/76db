@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Alert Control Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-800 text-white h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl p-8 space-y-6">
+        <h1 class="text-4xl font-black text-center text-red-500">Manual Alert Broadcaster</h1>
+        <p class="text-center text-gray-400">
+            Use this form to send a custom alert message to the main dashboard screen. The NWS alerts will still function automatically.
+        </p>
+
+        <form id="alertForm" class="space-y-6">
+            <div>
+                <label for="alertTitle" class="block text-sm font-bold text-gray-300 mb-2">Alert Title</label>
+                <input type="text" id="alertTitle" name="alertTitle" required class="w-full p-3 bg-gray-700 border-2 border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200" placeholder="e.g., IMPORTANT ANNOUNCEMENT">
+            </div>
+
+            <div>
+                <label for="alertMessage" class="block text-sm font-bold text-gray-300 mb-2">Alert Message</label>
+                <textarea id="alertMessage" name="alertMessage" rows="3" required class="w-full p-3 bg-gray-700 border-2 border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200" placeholder="e.g., Mandatory staff meeting in the main hall."></textarea>
+            </div>
+
+            <div>
+                <label for="alertDuration" class="block text-sm font-bold text-gray-300 mb-2">Display Duration (in seconds)</label>
+                <input type="number" id="alertDuration" name="alertDuration" required value="60" min="5" class="w-full p-3 bg-gray-700 border-2 border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200" placeholder="e.g., 60">
+            </div>
+
+            <div>
+                <label for="alertTone" class="block text-sm font-bold text-gray-300 mb-2">Select an Alert Tone</label>
+                <select id="alertTone" name="alertTone" class="w-full p-3 bg-gray-700 border-2 border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200">
+                    <option value="default" selected>NWS ALERT</option>
+                    <option value="alarm">MINITOR ALERT</option>
+                    <option value="chime">HI-LO ALERT</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-4 rounded-lg text-lg transition duration-300 transform hover:scale-105 shadow-lg">
+                Broadcast Alert Now
+            </button>
+        </form>
+
+        <div id="confirmationMessage" class="text-center text-green-400 font-bold opacity-0 transition-opacity duration-500">
+            Alert has been sent to the dashboard!
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('alertForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('alertTitle').value;
+            const message = document.getElementById('alertMessage').value;
+            const durationSeconds = document.getElementById('alertDuration').value;
+            const durationMilliseconds = parseInt(durationSeconds, 10) * 1000;
+            
+            const tone = document.getElementById('alertTone').value;
+
+            if (!title || !message || isNaN(durationMilliseconds) || durationMilliseconds <= 0) {
+                const confirmation = document.getElementById('confirmationMessage');
+                confirmation.textContent = 'Please enter a valid title, message, and duration.';
+                confirmation.classList.remove('text-green-400');
+                confirmation.classList.add('text-yellow-400');
+                confirmation.style.opacity = '1';
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    setTimeout(() => {
+                        confirmation.textContent = 'Alert has been sent to the dashboard!';
+                        confirmation.classList.remove('text-yellow-400');
+                        confirmation.classList.add('text-green-400');
+                    }, 500);
+                }, 4000);
+                return;
+            }
+
+            const alertData = {
+                title: title,
+                message: message,
+                duration: durationMilliseconds,
+                tone: tone
+            };
+
+            const storageKey = `manual_alert_${Date.now()}`;
+
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(alertData));
+
+                const confirmation = document.getElementById('confirmationMessage');
+                confirmation.textContent = 'Alert has been sent to the dashboard!';
+                confirmation.classList.remove('text-yellow-400');
+                confirmation.classList.add('text-green-400');
+                confirmation.style.opacity = '1';
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                }, 4000);
+
+                document.getElementById('alertForm').reset();
+
+            } catch (error) {
+                console.error('Failed to send alert via localStorage:', error);
+                const confirmation = document.getElementById('confirmationMessage');
+                confirmation.textContent = 'Error: Could not send the alert.';
+                confirmation.classList.remove('text-green-400');
+                confirmation.classList.add('text-red-400');
+                confirmation.style.opacity = '1';
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                     setTimeout(() => {
+                        confirmation.textContent = 'Alert has been sent to the dashboard!';
+                        confirmation.classList.remove('text-red-400');
+                        confirmation.classList.add('text-green-400');
+                    }, 500);
+                }, 4000);
+            }
+        });
+    </script>
+
+</body>
+</html>

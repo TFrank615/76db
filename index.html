@@ -54,7 +54,7 @@
 
   <!-- IPAWS / NWS Alert Overlay -->
   <div id="ipawsAlertOverlay" class="fixed inset-0 bg-black bg-opacity-95 text-red-500 text-3xl md:text-5xl font-black flex justify-center items-center text-center z-[9999] p-5 leading-tight opacity-0 invisible transition-opacity duration-500">
-    ALERT MESSAGE
+    <!-- Alert content will be injected here -->
   </div>
   
   <!-- Ticker Iframe -->
@@ -65,7 +65,6 @@
 
   <audio id="alertSound"></audio>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
   <script src="config.js"></script>
 
   <script>
@@ -92,27 +91,52 @@
         });
 
         // ------------------------------
-        // Audio Context and Sound Generation
+        // Audio Context and Sound Playback
         // ------------------------------
         let audioEnabled = false;
-        const alertSynth = new Tone.Synth({
-            oscillator: { type: 'square' },
-            envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.2 }
-        }).toDestination();
+        const alertAudioElement = document.getElementById('alertSound');
 
-        function playAlertSound() {
-            if (!audioEnabled) return;
-            const now = Tone.now();
-            alertSynth.triggerAttackRelease('C5', '8n', now);
-            alertSynth.triggerAttackRelease('G4', '8n', now + 0.2);
-            alertSynth.triggerAttackRelease('C5', '8n', now + 0.4);
+        // Maps the dropdown values to actual filenames.
+        // Assumes you have these files in the same folder.
+        const toneFileMap = {
+            'default': 'default.mp3',
+            'alarm': 'alarm.mp3',
+            'chime': 'chime.mp3',
+            'ascending': 'ascending.mp3'
+        };
+
+        function playAlertSound(toneName = 'default') {
+            if (!audioEnabled) {
+              console.warn("Audio not enabled by user yet. Click anywhere to enable.");
+              return;
+            }
+            
+            // Check if the toneName is a pre-defined key or a custom filename.
+            const fileName = toneFileMap[toneName] || toneName;
+
+            alertAudioElement.src = fileName;
+            alertAudioElement.play().catch(error => {
+              console.error(`Error playing sound "${fileName}":`, error);
+              // Handle cases where the file might be missing
+              const overlay = document.getElementById("ipawsAlertOverlay");
+              const errorSpan = document.createElement('span');
+              errorSpan.textContent = ` [Audio file not found: ${fileName}]`;
+              errorSpan.className = 'text-yellow-500 text-xl block mt-4';
+              if (!overlay.querySelector('span')) {
+                  overlay.appendChild(errorSpan);
+              }
+            });
         }
 
         function enableAudio() {
           if (audioEnabled) return;
-          Tone.start();
           audioEnabled = true;
-          console.log('Audio context started.');
+          // Playing and pausing a dummy sound is a robust way to unlock audio on all browsers.
+          alertAudioElement.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+          alertAudioElement.play().catch(()=>{});
+          alertAudioElement.pause();
+          alertAudioElement.currentTime = 0;
+          console.log('Audio context started by user interaction.');
           window.removeEventListener('click', enableAudio);
           window.removeEventListener('keydown', enableAudio);
         }
@@ -137,7 +161,6 @@
         let contentIndex = 0;
         let activeSlideIndex = 0;
         
-        // --- NEW: Function to dynamically set up Google Slides ---
         async function setupGoogleSlides() {
             const slidesConfig = CONFIG.googleSlides;
             const slidesSource = sources.find(s => s.type === 'googleslides');
@@ -262,6 +285,15 @@
         }
 
         startRotation();
+        
+        // --- Set up an interval to periodically refresh the Google Slides count ---
+        if (CONFIG.googleSlides && CONFIG.googleSlides.refreshIntervalMinutes > 0) {
+            const refreshIntervalMs = CONFIG.googleSlides.refreshIntervalMinutes * 60 * 1000;
+            setInterval(async () => {
+                console.log("Checking for Google Slides updates...");
+                await setupGoogleSlides();
+            }, refreshIntervalMs);
+        }
 
         // ------------------------------
         // IPAWS / NWS Alert System
@@ -272,6 +304,20 @@
         };
 
         const shownAlerts = new Set();
+        
+        function showIPAWSAlert(message, duration, toneName = 'default') {
+          const overlay = document.getElementById("ipawsAlertOverlay");
+          overlay.innerHTML = message;
+          overlay.classList.remove('invisible', 'opacity-0');
+          overlay.classList.add('opacity-100');
+          
+          playAlertSound(toneName);
+          
+          setTimeout(() => {
+            overlay.classList.remove('opacity-100');
+            overlay.classList.add('invisible', 'opacity-0');
+          }, duration);
+        }
 
         async function fetchIPAWSAlerts() {
           try {
@@ -296,24 +342,35 @@
             if (newAlertMessages.length > 0) {
               const fullMessage = newAlertMessages.join(' <span class="text-gray-500 mx-4">|||</span> ');
               const displayDuration = 60000 * newAlertMessages.length;
-              showIPAWSAlert(fullMessage, displayDuration);
+              showIPAWSAlert(fullMessage, displayDuration, 'alarm');
             }
           } catch (err) {
             console.error("IPAWS/NWS alert fetch failed:", err);
           }
         }
+        
+        window.addEventListener('storage', (event) => {
+            if (event.key && event.key.startsWith('manual_alert_')) {
+                console.log('Manual alert received:', event.key);
+                try {
+                    const alertData = JSON.parse(event.newValue);
+                    if (alertData && alertData.message && alertData.duration) {
+                        let displayMessage = '';
+                        // If there's a title, format it with a larger font size.
+                        if (alertData.title) {
+                            displayMessage = `<div class="text-center"><h1 class="text-6xl md:text-7xl font-black mb-4">${alertData.title}</h1><p class="text-4xl md:text-5xl font-bold">${alertData.message}</p></div>`;
+                        } else {
+                            displayMessage = alertData.message;
+                        }
+                        showIPAWSAlert(displayMessage, alertData.duration, alertData.tone || 'default');
+                    }
+                    localStorage.removeItem(event.key);
+                } catch (e) {
+                    console.error('Failed to parse manual alert data:', e);
+                }
+            }
+        });
 
-        function showIPAWSAlert(message, duration) {
-          const overlay = document.getElementById("ipawsAlertOverlay");
-          overlay.innerHTML = message;
-          overlay.classList.remove('invisible', 'opacity-0');
-          overlay.classList.add('opacity-100');
-          playAlertSound();
-          setTimeout(() => {
-            overlay.classList.remove('opacity-100');
-            overlay.classList.add('invisible', 'opacity-0');
-          }, duration);
-        }
 
         // ------------------------------
         // Toolbar Weather Widget
