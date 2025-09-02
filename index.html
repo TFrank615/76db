@@ -66,6 +66,9 @@
   <audio id="alertSound"></audio>
 
   <script src="config.js"></script>
+  <!-- Firebase Libraries -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
@@ -97,7 +100,6 @@
         const alertAudioElement = document.getElementById('alertSound');
 
         // Maps the dropdown values to actual filenames.
-        // Assumes you have these files in the same folder.
         const toneFileMap = {
             'default': 'default.mp3',
             'alarm': 'alarm.mp3',
@@ -110,14 +112,10 @@
               console.warn("Audio not enabled by user yet. Click anywhere to enable.");
               return;
             }
-            
-            // Check if the toneName is a pre-defined key or a custom filename.
             const fileName = toneFileMap[toneName] || toneName;
-
             alertAudioElement.src = fileName;
             alertAudioElement.play().catch(error => {
               console.error(`Error playing sound "${fileName}":`, error);
-              // Handle cases where the file might be missing
               const overlay = document.getElementById("ipawsAlertOverlay");
               const errorSpan = document.createElement('span');
               errorSpan.textContent = ` [Audio file not found: ${fileName}]`;
@@ -131,7 +129,6 @@
         function enableAudio() {
           if (audioEnabled) return;
           audioEnabled = true;
-          // Playing and pausing a dummy sound is a robust way to unlock audio on all browsers.
           alertAudioElement.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
           alertAudioElement.play().catch(()=>{});
           alertAudioElement.pause();
@@ -147,7 +144,7 @@
         // Slide Rotation Logic
         // ------------------------------
         const sources = [
-          { type: 'googleslides', iframe: ``, duration: 20000 }, // Placeholder, will be replaced by script
+          { type: 'googleslides', iframe: ``, duration: 20000 },
           { iframe: `<iframe title="Weather Radar" src="weather_radar.html" frameborder="0" class="w-full h-full"></iframe>`, duration: 20000 },
           { iframe: '<iframe title="News Feed" src="news.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
           { iframe: '<iframe title="Maintenance" src="maintenance.html" frameborder="0" allowfullscreen="true" class="w-full h-full"></iframe>', duration: 20000 },
@@ -162,6 +159,7 @@
         let activeSlideIndex = 0;
         
         async function setupGoogleSlides() {
+            // ... (this function remains unchanged)
             const slidesConfig = CONFIG.googleSlides;
             const slidesSource = sources.find(s => s.type === 'googleslides');
 
@@ -183,7 +181,6 @@
 
                 const delayMs = slidesConfig.delayPerSlideSeconds * 1000;
                 const totalDuration = slideCount * delayMs;
-
                 const embedUrl = `${slidesConfig.embedUrlBase}&delayms=${delayMs}`;
                 const iframeHtml = `<iframe title="Google Slides" src="${embedUrl}" frameborder="0" class="w-full h-full"></iframe>`;
 
@@ -201,84 +198,56 @@
             }
         }
 
-
-        function scheduleNextSlide(duration) {
-            setTimeout(() => {
-              contentIndex = (contentIndex + 1) % sources.length;
-              rotateSlides();
-            }, duration);
-        }
+        function scheduleNextSlide(duration) { setTimeout(() => { contentIndex = (contentIndex + 1) % sources.length; rotateSlides(); }, duration); }
 
         function rotateSlides() {
-          let source = sources[contentIndex];
-          const initialIndex = contentIndex;
-
-          while (source.duration === 0) {
-            contentIndex = (contentIndex + 1) % sources.length;
-            source = sources[contentIndex];
-            if (contentIndex === initialIndex) {
-              console.error("All slides have a duration of 0. Halting rotation.");
-              return; 
+            // ... (this function remains unchanged)
+            let source = sources[contentIndex];
+            const initialIndex = contentIndex;
+            while (source.duration === 0) {
+                contentIndex = (contentIndex + 1) % sources.length;
+                source = sources[contentIndex];
+                if (contentIndex === initialIndex) { console.error("All slides have a duration of 0. Halting rotation."); return; }
             }
-          }
-
-          const nextSlideIndex = 1 - activeSlideIndex;
-          const currentSlide = slideDivs[activeSlideIndex];
-          const nextSlide = slideDivs[nextSlideIndex];
-          
-          nextSlide.innerHTML = source.iframe;
-          const iframe = nextSlide.querySelector('iframe');
-          
-          const transition = () => {
-            if (nextSlide.classList.contains('opacity-100')) return;
-            currentSlide.classList.remove('opacity-100');
-            currentSlide.classList.add('opacity-0');
-            
-            nextSlide.classList.remove('opacity-0');
-            nextSlide.classList.add('opacity-100');
-
-            activeSlideIndex = nextSlideIndex;
-            scheduleNextSlide(source.duration);
-          };
-          
-          if (iframe) {
-            iframe.onload = transition;
-            iframe.onerror = () => {
-              console.error("Iframe failed to load:", source.iframe);
-              transition();
+            const nextSlideIndex = 1 - activeSlideIndex;
+            const currentSlide = slideDivs[activeSlideIndex];
+            const nextSlide = slideDivs[nextSlideIndex];
+            nextSlide.innerHTML = source.iframe;
+            const iframe = nextSlide.querySelector('iframe');
+            const transition = () => {
+                if (nextSlide.classList.contains('opacity-100')) return;
+                currentSlide.classList.remove('opacity-100');
+                currentSlide.classList.add('opacity-0');
+                nextSlide.classList.remove('opacity-0');
+                nextSlide.classList.add('opacity-100');
+                activeSlideIndex = nextSlideIndex;
+                scheduleNextSlide(source.duration);
             };
-            setTimeout(transition, 500); // Failsafe
-          } else {
-             // For error messages which don't have an iframe
-             transition();
-          }
+            if (iframe) {
+                iframe.onload = transition;
+                iframe.onerror = () => { console.error("Iframe failed to load:", source.iframe); transition(); };
+                setTimeout(transition, 500);
+            } else {
+                transition();
+            }
         }
 
         async function startRotation() {
-          await setupGoogleSlides(); // Wait for slide configuration to finish
-
+          await setupGoogleSlides(); 
           const firstSource = sources[0];
           slideDivs[0].innerHTML = firstSource.iframe;
-          
           const transition = () => {
               if (slideDivs[0].classList.contains('opacity-100')) return;
               slideDivs[0].classList.remove('opacity-0');
               slideDivs[0].classList.add('opacity-100');
               activeSlideIndex = 0;
-              setTimeout(() => {
-                  contentIndex = 1;
-                  rotateSlides();
-              }, firstSource.duration);
+              setTimeout(() => { contentIndex = 1; rotateSlides(); }, firstSource.duration);
           };
-          
           const firstIframe = slideDivs[0].querySelector('iframe');
           if(firstIframe) {
             firstIframe.onload = transition;
-            firstIframe.onerror = () => {
-                console.error("First iframe failed to load:", firstSource.iframe);
-                transition();
-            };
-             setTimeout(transition, 500); // Failsafe
+            firstIframe.onerror = () => { console.error("First iframe failed to load:", firstSource.iframe); transition(); };
+             setTimeout(transition, 500);
           } else {
             transition();
           }
@@ -286,23 +255,18 @@
 
         startRotation();
         
-        // --- Set up an interval to periodically refresh the Google Slides count ---
         if (CONFIG.googleSlides && CONFIG.googleSlides.refreshIntervalMinutes > 0) {
             const refreshIntervalMs = CONFIG.googleSlides.refreshIntervalMinutes * 60 * 1000;
-            setInterval(async () => {
-                console.log("Checking for Google Slides updates...");
-                await setupGoogleSlides();
-            }, refreshIntervalMs);
+            setInterval(async () => { console.log("Checking for Google Slides updates..."); await setupGoogleSlides(); }, refreshIntervalMs);
         }
 
         // ------------------------------
-        // IPAWS / NWS Alert System
+        // Remote & NWS Alert System
         // ------------------------------
         const IPAWS_CONFIG = {
             ZONE: CONFIG.nwsAlertZone,
-            REFRESH_INTERVAL_SECONDS: 300 // 5 minutes
+            REFRESH_INTERVAL_SECONDS: 300
         };
-
         const shownAlerts = new Set();
         
         function showIPAWSAlert(message, duration, toneName = 'default') {
@@ -310,9 +274,7 @@
           overlay.innerHTML = message;
           overlay.classList.remove('invisible', 'opacity-0');
           overlay.classList.add('opacity-100');
-          
           playAlertSound(toneName);
-          
           setTimeout(() => {
             overlay.classList.remove('opacity-100');
             overlay.classList.add('invisible', 'opacity-0');
@@ -322,23 +284,18 @@
         async function fetchIPAWSAlerts() {
           try {
             const response = await fetch(`https://api.weather.gov/alerts/active/zone/${IPAWS_CONFIG.ZONE}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
             const data = await response.json();
             const newAlertMessages = [];
-
             if (data.features && data.features.length > 0) {
               for (const feature of data.features) {
                 const alertId = feature.id;
                 if (!shownAlerts.has(alertId)) {
-                  const alert = feature.properties;
-                  newAlertMessages.push(alert.headline);
+                  newAlertMessages.push(feature.properties.headline);
                   shownAlerts.add(alertId);
                 }
               }
             }
-            
             if (newAlertMessages.length > 0) {
               const fullMessage = newAlertMessages.join(' <span class="text-gray-500 mx-4">|||</span> ');
               const displayDuration = 60000 * newAlertMessages.length;
@@ -349,63 +306,77 @@
           }
         }
         
-        window.addEventListener('storage', (event) => {
-            if (event.key && event.key.startsWith('manual_alert_')) {
-                console.log('Manual alert received:', event.key);
-                try {
-                    const alertData = JSON.parse(event.newValue);
-                    if (alertData && alertData.message && alertData.duration) {
-                        let displayMessage = '';
-                        // If there's a title, format it with a larger font size.
-                        if (alertData.title) {
-                            displayMessage = `<div class="text-center"><h1 class="text-6xl md:text-7xl font-black mb-4">${alertData.title}</h1><p class="text-4xl md:text-5xl font-bold">${alertData.message}</p></div>`;
-                        } else {
-                            displayMessage = alertData.message;
-                        }
-                        showIPAWSAlert(displayMessage, alertData.duration, alertData.tone || 'default');
-                    }
-                    localStorage.removeItem(event.key);
-                } catch (e) {
-                    console.error('Failed to parse manual alert data:', e);
+        // --- NEW: Firebase Real-time Alert Listener ---
+        function initializeFirebaseListener() {
+            try {
+                if (!CONFIG.firebaseConfig || CONFIG.firebaseConfig.apiKey === "PASTE_YOUR_API_KEY") {
+                    console.warn("Firebase is not configured in config.js. Remote manual alerts are disabled.");
+                    return;
                 }
+                
+                // Initialize Firebase
+                firebase.initializeApp(CONFIG.firebaseConfig);
+                const db = firebase.firestore();
+
+                // Listen for changes to the 'manual_alert' document
+                db.collection('alerts').doc('manual_alert')
+                    .onSnapshot((doc) => {
+                        if (doc.exists) {
+                            console.log("Remote alert received:", doc.data());
+                            const alertData = doc.data();
+
+                            if (alertData && alertData.message && alertData.duration) {
+                                let displayMessage = '';
+                                if (alertData.title) {
+                                    displayMessage = `<div class="text-center"><h1 class="text-6xl md:text-7xl font-black mb-4">${alertData.title}</h1><p class="text-4xl md:text-5xl font-bold">${alertData.message}</p></div>`;
+                                } else {
+                                    displayMessage = alertData.message;
+                                }
+                                showIPAWSAlert(displayMessage, alertData.duration, alertData.tone || 'default');
+                                
+                                // After showing the alert, delete it from the database so it doesn't reappear on other dashboards
+                                // that might load later or on a page refresh. We add a small delay to give other live dashboards
+                                // a chance to receive the alert before it's deleted.
+                                setTimeout(() => {
+                                    doc.ref.delete().catch(e => console.error("Error deleting alert from Firestore:", e));
+                                }, 2000); 
+                            }
+                        }
+                    }, (error) => {
+                        console.error("Error with Firestore listener: ", error);
+                    });
+
+            } catch(e) {
+                console.error("Failed to initialize Firebase listener:", e);
             }
-        });
+        }
 
 
         // ------------------------------
         // Toolbar Weather Widget
         // ------------------------------
         async function fetchToolbarWeather() {
+            // ... (this function remains unchanged)
             const weather = CONFIG.weatherConfig;
             const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${weather.latitude}&longitude=${weather.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
             const tempEl = document.getElementById('weather-temp');
             const conditionEl = document.getElementById('weather-condition');
             const highLowEl = document.getElementById('weather-high-low');
             const locationEl = document.getElementById('weather-location');
-            const CONDITIONS = {
-                0: "Clear", 1: "Clear", 2: "Cloudy", 3: "Overcast", 45: "Fog", 48: "Fog",
-                51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 56: "Freezing Drizzle", 57: "Freezing Drizzle",
-                61: "Rain", 63: "Rain", 65: "Rain", 66: "Freezing Rain", 67: "Freezing Rain",
-                71: "Snow", 73: "Snow", 75: "Snow", 77: "Snow",
-                80: "Showers", 81: "Showers", 82: "Showers", 85: "Snow Showers", 86: "Snow Showers",
-                95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm"
-            };
+            const CONDITIONS = { 0: "Clear", 1: "Clear", 2: "Cloudy", 3: "Overcast", 45: "Fog", 48: "Fog", 51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 56: "Freezing Drizzle", 57: "Freezing Drizzle", 61: "Rain", 63: "Rain", 65: "Rain", 66: "Freezing Rain", 67: "Freezing Rain", 71: "Snow", 73: "Snow", 75: "Snow", 77: "Snow", 80: "Showers", 81: "Showers", 82: "Showers", 85: "Snow Showers", 86: "Snow Showers", 95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm" };
 
             try {
                 const response = await fetch(apiUrl);
                 if (!response.ok) throw new Error("Failed to fetch weather");
                 const data = await response.json();
-
                 const temp = Math.round(data.current.temperature_2m);
                 const high = Math.round(data.daily.temperature_2m_max[0]);
                 const low = Math.round(data.daily.temperature_2m_min[0]);
                 const condition = CONDITIONS[data.current.weather_code] || 'N/A';
-
                 tempEl.textContent = `${temp}°`;
                 conditionEl.textContent = condition;
                 locationEl.textContent = weather.locationName;
                 highLowEl.textContent = `H: ${high}° L: ${low}°`;
-
             } catch (error) {
                 console.error("Toolbar weather fetch failed:", error);
                 conditionEl.textContent = 'Weather unavailable';
@@ -417,6 +388,7 @@
         // Initial calls and intervals
         fetchIPAWSAlerts();
         fetchToolbarWeather();
+        initializeFirebaseListener(); // <-- Listen for remote alerts
         setInterval(fetchIPAWSAlerts, IPAWS_CONFIG.REFRESH_INTERVAL_SECONDS * 1000);
         setInterval(fetchToolbarWeather, CONFIG.weatherConfig.refreshIntervalMinutes * 60 * 1000);
     });

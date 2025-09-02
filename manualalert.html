@@ -9,13 +9,18 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <!-- Firebase Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+    <!-- App Configuration -->
+    <script src="config.js"></script>
 </head>
 <body class="bg-gray-800 text-white h-screen flex items-center justify-center p-4">
 
     <div class="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl p-8 space-y-6">
         <h1 class="text-4xl font-black text-center text-red-500">Manual Alert Broadcaster</h1>
         <p class="text-center text-gray-400">
-            Use this form to send a custom alert message to the main dashboard screen. The NWS alerts will still function automatically.
+            Use this form to send a custom alert message to all live dashboards over the internet.
         </p>
 
         <form id="alertForm" class="space-y-6">
@@ -48,79 +53,74 @@
             </button>
         </form>
 
-        <div id="confirmationMessage" class="text-center text-green-400 font-bold opacity-0 transition-opacity duration-500">
-            Alert has been sent to the dashboard!
+        <div id="confirmationMessage" class="text-center font-bold opacity-0 transition-opacity duration-500">
+            <!-- Status messages will appear here -->
         </div>
     </div>
 
     <script>
-        document.getElementById('alertForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            const title = document.getElementById('alertTitle').value;
-            const message = document.getElementById('alertMessage').value;
-            const durationSeconds = document.getElementById('alertDuration').value;
-            const durationMilliseconds = parseInt(durationSeconds, 10) * 1000;
-            
-            const tone = document.getElementById('alertTone').value;
-
-            if (!title || !message || isNaN(durationMilliseconds) || durationMilliseconds <= 0) {
-                const confirmation = document.getElementById('confirmationMessage');
-                confirmation.textContent = 'Please enter a valid title, message, and duration.';
-                confirmation.classList.remove('text-green-400');
-                confirmation.classList.add('text-yellow-400');
-                confirmation.style.opacity = '1';
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                    setTimeout(() => {
-                        confirmation.textContent = 'Alert has been sent to the dashboard!';
-                        confirmation.classList.remove('text-yellow-400');
-                        confirmation.classList.add('text-green-400');
-                    }, 500);
-                }, 4000);
-                return;
+        // Initialize Firebase and get a reference to the Firestore service
+        let db;
+        try {
+            if (CONFIG.firebaseConfig && CONFIG.firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY") {
+                firebase.initializeApp(CONFIG.firebaseConfig);
+                db = firebase.firestore();
+            } else {
+                throw new Error("Firebase is not configured in config.js. Please add your Firebase project configuration to enable this page.");
             }
+        } catch (e) {
+            console.error(e);
+            const formContainer = document.getElementById('alertForm');
+            const confirmation = document.getElementById('confirmationMessage');
+            formContainer.innerHTML = ''; // Clear the form
+            confirmation.innerHTML = `<p class="text-red-400 text-center">${e.message}</p>`;
+            confirmation.style.opacity = '1';
+        }
 
-            const alertData = {
-                title: title,
-                message: message,
-                duration: durationMilliseconds,
-                tone: tone
-            };
+        if (db) {
+            document.getElementById('alertForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
 
-            const storageKey = `manual_alert_${Date.now()}`;
-
-            try {
-                localStorage.setItem(storageKey, JSON.stringify(alertData));
-
+                const title = document.getElementById('alertTitle').value;
+                const message = document.getElementById('alertMessage').value;
+                const durationSeconds = document.getElementById('alertDuration').value;
+                const durationMilliseconds = parseInt(durationSeconds, 10) * 1000;
+                const tone = document.getElementById('alertTone').value;
                 const confirmation = document.getElementById('confirmationMessage');
-                confirmation.textContent = 'Alert has been sent to the dashboard!';
-                confirmation.classList.remove('text-yellow-400');
-                confirmation.classList.add('text-green-400');
-                confirmation.style.opacity = '1';
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                }, 4000);
 
-                document.getElementById('alertForm').reset();
+                if (!title || !message || isNaN(durationMilliseconds) || durationMilliseconds <= 0) {
+                    confirmation.textContent = 'Please enter a valid title, message, and duration.';
+                    confirmation.className = 'text-center font-bold text-yellow-400 opacity-100 transition-opacity duration-500';
+                    setTimeout(() => { confirmation.style.opacity = '0'; }, 4000);
+                    return;
+                }
 
-            } catch (error) {
-                console.error('Failed to send alert via localStorage:', error);
-                const confirmation = document.getElementById('confirmationMessage');
-                confirmation.textContent = 'Error: Could not send the alert.';
-                confirmation.classList.remove('text-green-400');
-                confirmation.classList.add('text-red-400');
-                confirmation.style.opacity = '1';
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                     setTimeout(() => {
-                        confirmation.textContent = 'Alert has been sent to the dashboard!';
-                        confirmation.classList.remove('text-red-400');
-                        confirmation.classList.add('text-green-400');
-                    }, 500);
-                }, 4000);
-            }
-        });
+                const alertData = {
+                    title: title,
+                    message: message,
+                    duration: durationMilliseconds,
+                    tone: tone,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp() // Add a timestamp for uniqueness
+                };
+
+                try {
+                    // Set a single, well-known document. Dashboards will listen to this document for changes.
+                    await db.collection('alerts').doc('manual_alert').set(alertData);
+
+                    confirmation.textContent = 'Alert has been broadcast successfully!';
+                    confirmation.className = 'text-center font-bold text-green-400 opacity-100 transition-opacity duration-500';
+                    setTimeout(() => { confirmation.style.opacity = '0'; }, 4000);
+
+                    document.getElementById('alertForm').reset();
+
+                } catch (error) {
+                    console.error('Failed to send alert via Firestore:', error);
+                    confirmation.textContent = 'Error: Could not send the alert. Check console and Firebase config.';
+                    confirmation.className = 'text-center font-bold text-red-500 opacity-100 transition-opacity duration-500';
+                    setTimeout(() => { confirmation.style.opacity = '0'; }, 5000);
+                }
+            });
+        }
     </script>
 
 </body>

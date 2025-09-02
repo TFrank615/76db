@@ -54,6 +54,21 @@ const CONFIG = {
         publishedDate: 'Published Date',
         publishedBy: 'Published By',
         pinned: 'Pinned Message?'
+    },
+
+    // --- NEW: Firebase Configuration for Remote Alerts ---
+    // 1. Go to https://firebase.google.com/ and create a new project.
+    // 2. In your project, create a new Web App ("</>").
+    // 3. Firebase will provide you with a configuration object. Copy its values here.
+    // 4. In the Firebase console, go to "Firestore Database", create a database,
+    //    and start in "test mode" for easy setup. This will allow the alert panel
+    //    to write data and the dashboards to read it.
+    firebaseConfig: {
+        apiKey: "AIzaSyBiIW8o26uosvT647wcF_EDHomQZsaxIpo",
+        authDomain: "htfd-alerts.firebaseapp.com",
+        projectId: "htfd-alerts",
+        storageBucket: "htfd-alerts.firebasestorage.app",
+        messagingSenderId: "736925438012",
+        appId: "1:736925438012:web:0076dec733690b70df7339",
     }
 };
-
