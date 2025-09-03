@@ -3,35 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Calendar Sync</title>
+    <title>Dept Events & Trainings</title>
     
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- FullCalendar scripts are no longer needed and have been removed -->
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #020617; /* bg-slate-950 */
         }
-        /* All FullCalendar-specific CSS has been removed */
+        /* Custom styles for the feed view */
         .event-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            border: 1px solid #1e293b; /* border-slate-800 */
         }
         .event-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            background-color: #1e293b; /* bg-slate-800 */
+        }
+        /* Keyframes for the shimmer animation on skeleton loaders */
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        .skeleton-shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0.03) 20%,
+                rgba(255, 255, 255, 0.08) 60%,
+                rgba(255, 255, 255, 0)
+            );
+            animation: shimmer 1.8s infinite;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 antialiased">
+<body class="bg-slate-950 text-slate-300 antialiased">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl h-full flex flex-col">
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl min-h-screen flex flex-col">
         <header class="text-center mb-12 flex-shrink-0">
-            <h1 class="text-5xl font-bold text-white">EVENTS - TRAININGS - IMPORTANT DATES</h1>
-            <p class="text-xl text-gray-400 mt-3"></p>
+            <div class="inline-flex items-center gap-3">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                 <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">EVENTS & TRAININGS</h1>
+            </div>
         </header>
 
         <!-- Configuration Section (hidden, but holds the credentials) -->
@@ -40,15 +68,52 @@
             <input type="email" id="calendarId" value="94e368189a926a957a0c9c43138f0c06256f0f17521b1e1b8749ccf63a1a61e7@group.calendar.google.com">
         </div>
         
-        <!-- This wrapper will grow to fill available space -->
-        <div class="flex-grow">
-            <!-- Events will be displayed here -->
-            <div id="events-container" class="flex flex-wrap gap-6 justify-center">
-                 <div id="events-placeholder" class="text-center py-20 text-gray-400">
-                    <p class="text-lg">Loading events...</p>
-                </div>
+        <!-- Main content area -->
+        <main class="flex-grow">
+            <!-- Events will be displayed here in a two-column grid format -->
+            <div id="events-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <!-- Skeleton Loader -->
+                 <div id="events-placeholder" class="grid grid-cols-1 md:grid-cols-2 gap-8 col-span-2">
+                    <!-- We repeat this block for a nice loading effect -->
+                    <div class="relative overflow-hidden flex items-start gap-6 p-6 min-h-[150px] bg-slate-900 rounded-lg border border-slate-800 skeleton-shimmer">
+                        <div class="flex-shrink-0 w-20 h-20 bg-slate-800 rounded-md mt-1"></div>
+                        <div class="flex-grow space-y-3 pt-1">
+                            <div class="h-6 bg-slate-800 rounded w-3/4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-1/2"></div>
+                            <div class="h-5 bg-slate-800 rounded w-full mt-4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-2/3"></div>
+                        </div>
+                    </div>
+                    <div class="relative overflow-hidden flex items-start gap-6 p-6 min-h-[150px] bg-slate-900 rounded-lg border border-slate-800 skeleton-shimmer">
+                        <div class="flex-shrink-0 w-20 h-20 bg-slate-800 rounded-md mt-1"></div>
+                        <div class="flex-grow space-y-3 pt-1">
+                            <div class="h-6 bg-slate-800 rounded w-3/4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-1/2"></div>
+                            <div class="h-5 bg-slate-800 rounded w-full mt-4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-2/3"></div>
+                        </div>
+                    </div>
+                    <div class="relative overflow-hidden flex items-start gap-6 p-6 min-h-[150px] bg-slate-900 rounded-lg border border-slate-800 skeleton-shimmer">
+                        <div class="flex-shrink-0 w-20 h-20 bg-slate-800 rounded-md mt-1"></div>
+                        <div class="flex-grow space-y-3 pt-1">
+                            <div class="h-6 bg-slate-800 rounded w-3/4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-1/2"></div>
+                            <div class="h-5 bg-slate-800 rounded w-full mt-4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-2/3"></div>
+                        </div>
+                    </div>
+                    <div class="relative overflow-hidden flex items-start gap-6 p-6 min-h-[150px] bg-slate-900 rounded-lg border border-slate-800 skeleton-shimmer">
+                        <div class="flex-shrink-0 w-20 h-20 bg-slate-800 rounded-md mt-1"></div>
+                        <div class="flex-grow space-y-3 pt-1">
+                            <div class="h-6 bg-slate-800 rounded w-3/4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-1/2"></div>
+                            <div class="h-5 bg-slate-800 rounded w-full mt-4"></div>
+                            <div class="h-5 bg-slate-800 rounded w-2/3"></div>
+                        </div>
+                    </div>
+                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
@@ -60,60 +125,70 @@
             
             let allEvents = []; // Store all fetched events here
 
-            // Function to format date/time nicely
-            function formatEventDate(eventStart) {
-                if (!eventStart) return '';
-                // Handles both all-day events (date) and timed events (dateTime)
-                const dateStr = eventStart.date || eventStart.dateTime;
-                if (!dateStr) return '';
+            // Helper function to get parts of the date
+            function getDateParts(eventStart) {
+                const dateStr = eventStart?.date || eventStart?.dateTime;
+                if (!dateStr) return { month: '', day: '', time: 'Time TBD' };
                 
                 const date = new Date(dateStr);
-                // Use options to format the date clearly
-                const options = { month: 'short', day: 'numeric', year: 'numeric' };
-                return date.toLocaleDateString('en-US', options);
+                const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                const day = date.toLocaleDateString('en-US', { day: '2-digit' });
+
+                let time = 'All-Day';
+                if (eventStart.dateTime) {
+                    time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                }
+                
+                return { month, day, time };
             }
 
-            // This function renders a maximum of 9 events
-            function renderVisibleEvents() {
-                const wrapper = document.querySelector('.flex-grow');
-                if (!wrapper) return;
-
-                // Clear the container before re-calculating
-                eventsContainer.innerHTML = '';
+            // This function renders the events into the feed
+            function renderEvents() {
+                eventsContainer.innerHTML = ''; // Clear everything including the placeholder
 
                 if (allEvents.length === 0) {
-                    eventsContainer.innerHTML = `<div id="events-placeholder" class="text-center py-20 text-gray-400"><p class="text-lg">No upcoming events found.</p></div>`;
+                    eventsContainer.innerHTML = `
+                        <div class="col-span-1 md:col-span-2 text-center py-20 px-6 bg-slate-900 rounded-lg border border-slate-800">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-slate-600 mb-4"><path d="M12.5 22h-6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5"></path><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path><path d="m21.7 17.8-1.1-1.1a1 1 0 0 0-1.5 0l-1 1a1 1 0 0 0 0 1.5l1.1 1.1c.4.4 1 .4 1.5 0l1-1a1 1 0 0 0 0-1.5z"></path><path d="m16 22 3-3"></path></svg>
+                            <h2 class="text-2xl font-semibold text-white">No Upcoming Events</h2>
+                            <p class="text-slate-400 mt-2 text-lg">Please check back later for new events.</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                // Create a new array with only the first 9 events
-                const eventsToShow = allEvents.slice(0, 9);
+                for (const event of allEvents) {
+                    if (!event.summary) continue;
 
-                for (const event of eventsToShow) {
-                    if (!event.summary) continue; // Skip events without a title
-
-                    const eventCard = document.createElement('div');
-                    // Use justify-between to push the location footer to the bottom
-                    eventCard.className = 'event-card flex flex-col justify-between p-6 rounded-lg text-white w-full sm:w-96 min-h-[200px]';
+                    const eventItem = document.createElement('div');
+                    // Changed to items-start for better alignment with description
+                    eventItem.className = 'event-card bg-slate-900 rounded-lg flex items-start p-6 gap-6'; 
                     
-                    // Set a single, consistent color for all event cards
-                    eventCard.style.backgroundColor = '#374151'; // A neutral dark gray
+                    const { month, day, time } = getDateParts(event.start);
+                    const locationText = event.location || 'Remote / TBD';
+                    const description = event.description; // Get the description
+                    
+                    const timeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1.5 align-middle"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+                    const locationIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1.5 align-middle"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
 
-                    const eventDate = formatEventDate(event.start);
-                    const descriptionHTML = event.description ? `<p class="text-base font-normal opacity-80 mt-2">${event.description}</p>` : '';
-                    const locationHTML = event.location ? `<div class="text-sm font-medium opacity-70 mt-4 pt-3 border-t border-gray-500">${event.location}</div>` : '';
-
-                    eventCard.innerHTML = `
-                        <div>
-                            <span class="text-base font-medium opacity-90 mb-2">${eventDate}</span>
-                            <div>
-                                <span class="font-bold text-xl block w-full text-center">${event.summary}</span>
-                                ${descriptionHTML}
-                            </div>
+                    eventItem.innerHTML = `
+                        <!-- Date Block -->
+                        <div class="date-block text-center flex-shrink-0 w-20 bg-slate-800/70 rounded-lg p-3 border border-slate-700">
+                            <p class="month text-sm font-bold text-cyan-400 tracking-wider">${month || 'TBD'}</p>
+                            <p class="day text-4xl font-extrabold text-white tracking-tight">${day || '--'}</p>
                         </div>
-                        ${locationHTML}
+                        
+                        <!-- Event Details -->
+                        <div class="details flex-grow">
+                            <h3 class="font-bold text-white text-lg md:text-xl leading-tight">${event.summary}</h3>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 text-base text-slate-400 mt-2">
+                                <span class="flex items-center">${timeIcon} ${time}</span>
+                                <span class="flex items-center mt-1 sm:mt-0">${locationIcon} ${locationText}</span>
+                            </div>
+                            ${description ? `<p class="text-base text-slate-400 mt-4 prose prose-invert max-w-none">${description}</p>` : ''}
+                        </div>
                     `;
-                    eventsContainer.appendChild(eventCard);
+                    eventsContainer.appendChild(eventItem);
                 }
             }
 
@@ -122,11 +197,10 @@
                 const calendarId = calendarIdInput.value.trim();
 
                 if (!apiKey || !calendarId) {
-                    eventsPlaceholder.innerHTML = '<p class="text-red-500">API Key or Calendar ID is missing.</p>';
+                    eventsContainer.innerHTML = '<p class="text-red-500 col-span-2">API Key or Calendar ID is missing.</p>';
                     return;
                 }
                 
-                // Fetch only future events, sorted by start time
                 const timeMin = new Date().toISOString();
                 const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${timeMin}&singleEvents=true&orderBy=startTime`;
 
@@ -136,33 +210,21 @@
                         throw new Error(`Google Calendar API error: ${response.statusText}`);
                     }
                     const data = await response.json();
-
-                    // Store the fetched events
-                    if (data.items && data.items.length > 0) {
-                        allEvents = data.items;
-                    } else {
-                        allEvents = [];
-                    }
-                    
-                    // Do the initial render
-                    renderVisibleEvents();
-
+                    allEvents = data.items || [];
+                    renderEvents();
                 } catch (error) {
                     console.error('Error fetching calendar events:', error);
-                    eventsContainer.innerHTML = ''; // Clear loading message
-                    const placeholder = document.getElementById('events-placeholder') || document.createElement('div');
-                    placeholder.innerHTML = `<p class="text-red-500 text-lg">Failed to load events. Check the console for details.</p>`;
-                    if (!document.getElementById('events-placeholder')) {
-                        eventsContainer.appendChild(placeholder);
-                    }
+                    eventsContainer.innerHTML = `
+                        <div class="col-span-1 md:col-span-2 text-center py-20 px-6 bg-slate-900 rounded-lg border border-red-900/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-red-500 mb-4"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <h2 class="text-2xl font-semibold text-white">Failed to Load Events</h2>
+                            <p class="text-slate-400 mt-2 text-lg">There was an error connecting to the Google Calendar API.</p>
+                        </div>
+                    `;
                 }
             }
             
-            // Automatically load the events on page load
             loadEvents();
-            
-            // Re-render the visible events when the window is resized
-            window.addEventListener('resize', renderVisibleEvents);
         });
     </script>
 </body>
