@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Status Board</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon2.png">
+    <link rel="icon" type="image/x-icon" href="favicon-32x32.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* bg-slate-900 */
+            background-image: radial-gradient(circle at top right, rgba(14, 165, 233, 0.15), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.15), transparent 50%);
+        }
+        /* Custom scrollbar for better aesthetics in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translate3d(0, -20%, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        .animate-fade-in-down {
+            animation: fadeInDown 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-300">
+
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-lg shadow-lg">
+            <div class="flex items-center">
+                 <img src="favicon-32x32.png" alt="Hospital Status Logo" class="w-10 h-10 mr-3">
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-100">Live Regional Hospital Status</h1>
+            </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <button id="filter-btn" class="bg-slate-700 text-slate-200 py-2 px-4 rounded-md hover:bg-slate-600 text-sm font-semibold transition-colors flex items-center gap-2 border border-slate-600">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.572a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg>
+                    Filter Hospitals
+                </button>
+                <div id="clock" class="text-lg font-semibold text-slate-300 bg-slate-700/50 border border-slate-700 px-4 py-2 rounded-md">
+                    Loading time...
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Status Board Grid -->
+        <main id="status-board" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="md:col-span-2 lg:col-span-3 text-center p-10 bg-slate-800/50 border border-slate-700 rounded-lg shadow-lg">
+                <p class="text-slate-500">Connecting to live data...</p>
+            </div>
+        </main>
+        
+    </div>
+
+    <!-- Filter Modal -->
+    <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-6 w-full max-w-lg relative max-h-[90vh] flex flex-col">
+            <button id="close-filter-modal-btn" class="absolute top-3 right-3 text-slate-400 hover:text-slate-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-xl font-bold mb-4 text-slate-100">Select Hospitals to Display</h3>
+            <div id="hospital-filter-list" class="flex-grow overflow-y-auto border-y border-slate-700 py-4 my-4">
+                <!-- Checkboxes will be populated here by JavaScript -->
+                <p class="text-slate-500">Loading hospitals...</p>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button id="cancel-filter-btn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-md hover:bg-slate-500 transition duration-150 ease-in-out">
+                    Cancel
+                </button>
+                <button id="save-filter-btn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                    Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Alert Overlay -->
+    <div id="update-alert" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-8 text-center max-w-md w-full animate-fade-in-down">
+             <svg class="w-16 h-16 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+            <h3 class="text-2xl font-bold text-slate-100 mb-2">Status Update</h3>
+            <p class="text-slate-300 text-lg mb-4"><strong id="updated-hospital-name" class="font-semibold text-slate-100"></strong> has been updated.</p>
+            <div id="update-details" class="text-left bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+                <!-- Details will be injected here -->
+            </div>
+        </div>
+    </div>
+    
+    <audio id="alert-audio" preload="auto"></audio>
+
+    <script type="module">
+        // --- FIREBASE SDK IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- FIREBASE CONFIG & INITIALIZATION ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-hospital-board';
+        const firebaseConfig = {
+          apiKey: "AIzaSyCU0IdmKT-9v8MeyhGrE61qxDHGSceWM9k",
+          authDomain: "gmv-hospital-status.firebaseapp.com",
+          projectId: "gmv-hospital-status",
+          storageBucket: "gmv-hospital-status.firebasestorage.app",
+          messagingSenderId: "435969463148",
+          appId: "1:435969463148:web:fcc5b6a24ca9c8d65ad949",
+          measurementId: "G-4LW53X096P"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        const hospitalsColPath = `/artifacts/${appId}/public/data/hospitals`;
+        const hospitalsCollection = collection(db, hospitalsColPath);
+        
+        // --- APP STATE ---
+        let allHospitals = [];
+        let filteredHospitalIds = [];
+        let isInitialLoad = true; // Flag for initial data load
+        
+        // --- DATA SEEDING (Only runs if the admin panel hasn't been used yet) ---
+        const seedInitialData = async () => {
+            const snapshot = await getDocs(hospitalsCollection);
+            if (snapshot.empty) {
+                console.log("No data found. Seeding initial hospital statuses...");
+                const batch = writeBatch(db);
+                const now = new Date();
+                const initialHospitals = [
+                    { name: 'Springfield General', status: 'accepting', notes: 'Accepting all transfers.', lastUpdated: now },
+                    { name: 'Mercy Hospital', status: 'diversion', notes: 'ER at capacity. Only accepting trauma.', lastUpdated: now },
+                    { name: 'Shelbyville Hospital', status: 'notice', notes: 'Pediatrics full. Construction at East entrance.', lastUpdated: now },
+                    { name: 'Capital City Medical', status: 'accepting', notes: '', lastUpdated: now },
+                    { name: 'Ogdenville Medical Center', status: 'accepting', notes: 'MRI is down.', lastUpdated: now },
+                    { name: 'North Haverbrook Clinic', status: 'diversion', notes: 'No neurologists on site.', lastUpdated: now },
+                ];
+                initialHospitals.forEach(hospital => {
+                    const docRef = doc(hospitalsCollection); // Auto-generate ID
+                    batch.set(docRef, hospital);
+                });
+                await batch.commit();
+                console.log("Initial data seeded.");
+            }
+        };
+
+        // --- DOM MANIPULATION & RENDERING ---
+        const renderBoard = () => {
+            const board = document.getElementById('status-board');
+            board.innerHTML = '';
+            
+            const hospitalsToDisplay = filteredHospitalIds.length > 0
+                ? allHospitals.filter(h => filteredHospitalIds.includes(h.id))
+                : allHospitals;
+
+            if (!hospitalsToDisplay || hospitalsToDisplay.length === 0) {
+                 board.innerHTML = `<div class="md:col-span-2 lg:col-span-3 text-center p-10 bg-slate-800/50 border border-slate-700 rounded-lg shadow-lg"><p class="text-slate-500">No hospitals match your filter, or no data is available.</p></div>`;
+                 return;
+            }
+            
+            const statusOrder = { 'diversion': 1, 'notice': 2, 'accepting': 3 };
+            hospitalsToDisplay.sort((a, b) => {
+                const orderA = statusOrder[a.status] || 99;
+                const orderB = statusOrder[b.status] || 99;
+                if (orderA !== orderB) return orderA - orderB;
+                return a.name.localeCompare(b.name);
+            });
+
+            hospitalsToDisplay.forEach(hospital => {
+                let statusBannerClass = '';
+                let statusText = '';
+
+                switch (hospital.status) {
+                    case 'accepting':
+                        statusBannerClass = 'bg-green-500/80';
+                        statusText = 'Accepting Patients';
+                        break;
+                    case 'diversion':
+                        statusBannerClass = 'bg-red-500/80';
+                        statusText = 'On Diversion';
+                        break;
+                    case 'notice':
+                        statusBannerClass = 'bg-yellow-500/80';
+                        statusText = 'Special Notice';
+                        break;
+                    default:
+                        statusBannerClass = 'bg-slate-600/80';
+                        statusText = 'Unknown';
+                }
+                
+                let lastUpdatedText = 'Not available';
+                if (hospital.lastUpdated && typeof hospital.lastUpdated.toDate === 'function') {
+                    const d = hospital.lastUpdated.toDate();
+                    lastUpdatedText = d.toLocaleString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+
+                const cardItem = `
+                    <div id="${hospital.id}" class="bg-slate-800/50 border border-slate-700 rounded-lg shadow-lg flex flex-col overflow-hidden transition-all duration-300 hover:bg-slate-800/80 hover:border-slate-600">
+                        <div class="font-bold p-2 ${statusBannerClass} text-white text-center text-sm">
+                            ${statusText}
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow">
+                            <h2 class="text-lg font-bold text-slate-100">${hospital.name}</h2>
+                            <p class="text-sm text-slate-400 mt-2 flex-grow"><span class="font-semibold text-slate-300">Notes:</span> ${hospital.notes || 'No updates.'}</p>
+                            <p class="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700 w-full"><span class="font-semibold">Last Updated:</span> ${lastUpdatedText}</p>
+                        </div>
+                    </div>
+                `;
+                board.innerHTML += cardItem;
+            });
+        };
+
+        const updateClock = () => {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+            document.getElementById('clock').textContent = now.toLocaleString('en-US', options);
+        };
+        
+        // --- FILTER MODAL LOGIC ---
+        const filterModal = document.getElementById('filter-modal');
+        const openFilterBtn = document.getElementById('filter-btn');
+        const closeFilterModalBtn = document.getElementById('close-filter-modal-btn');
+        const cancelFilterBtn = document.getElementById('cancel-filter-btn');
+        const saveFilterBtn = document.getElementById('save-filter-btn');
+        const hospitalFilterList = document.getElementById('hospital-filter-list');
+
+        const openFilterModal = () => {
+            hospitalFilterList.innerHTML = '';
+            if (allHospitals.length === 0) {
+                hospitalFilterList.innerHTML = '<p class="text-slate-500">No hospitals available to filter.</p>';
+            } else {
+                const sortedForFilter = [...allHospitals].sort((a,b) => a.name.localeCompare(b.name));
+                sortedForFilter.forEach(hospital => {
+                    const isChecked = filteredHospitalIds.includes(hospital.id);
+                    const checkboxItem = `
+                        <div class="flex items-center mb-2 p-2 rounded-md hover:bg-slate-700/50">
+                            <input id="filter-${hospital.id}" type="checkbox" value="${hospital.id}" class="h-4 w-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-offset-slate-800" ${isChecked ? 'checked' : ''}>
+                            <label for="filter-${hospital.id}" class="ml-3 block text-sm font-medium text-slate-300 cursor-pointer flex-grow">${hospital.name}</label>
+                        </div>
+                    `;
+                    hospitalFilterList.innerHTML += checkboxItem;
+                });
+            }
+            filterModal.classList.remove('hidden');
+        };
+
+        const closeFilterModal = () => {
+            filterModal.classList.add('hidden');
+        };
+
+        const saveFilter = () => {
+            const selectedCheckboxes = hospitalFilterList.querySelectorAll('input[type="checkbox"]:checked');
+            filteredHospitalIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+            try {
+                localStorage.setItem('hospitalFilter', JSON.stringify(filteredHospitalIds));
+            } catch (e) {
+                console.error("Could not save filter to localStorage:", e);
+            }
+            renderBoard();
+            closeFilterModal();
+        };
+
+        openFilterBtn.addEventListener('click', openFilterModal);
+        closeFilterModalBtn.addEventListener('click', closeFilterModal);
+        cancelFilterBtn.addEventListener('click', closeFilterModal);
+        saveFilterBtn.addEventListener('click', saveFilter);
+        filterModal.addEventListener('click', (e) => {
+            if (e.target === filterModal) closeFilterModal();
+        });
+        
+        // --- UPDATE ALERT LOGIC ---
+        const updateAlert = document.getElementById('update-alert');
+        const updatedHospitalName = document.getElementById('updated-hospital-name');
+        const updateDetailsContainer = document.getElementById('update-details');
+        const alertAudio = document.getElementById('alert-audio');
+        let alertTimeout;
+        
+        // --- Custom Alert Tone ---
+        // To use your own MP3, place it in the same directory as this HTML file
+        // and update the URL below.
+        const customAlertToneUrl = "./hosecart.mp3"; // <<< REPLACE WITH YOUR MP3 FILE PATH
+
+        const playAlertTone = () => {
+            // This check prevents reloading the same audio source repeatedly.
+            const currentSrc = new URL(alertAudio.src, window.location.href).href;
+            const newSrc = new URL(customAlertToneUrl, window.location.href).href;
+            
+            if (currentSrc !== newSrc) {
+                alertAudio.src = customAlertToneUrl;
+            }
+           
+            alertAudio.play().catch(error => {
+                // Autoplay was prevented. This can happen if the user hasn't interacted with the page yet.
+                console.log("Audio playback was prevented by the browser.", error);
+            });
+        };
+
+        const showUpdateAlert = (hospital) => {
+            playAlertTone();
+            if (alertTimeout) clearTimeout(alertTimeout);
+            updatedHospitalName.textContent = hospital.name;
+
+            let statusClass = '';
+            let statusText = '';
+
+            switch (hospital.status) {
+                case 'accepting':
+                    statusClass = 'bg-green-500/10 text-green-400 border border-green-500/20';
+                    statusText = 'Accepting Patients';
+                    break;
+                case 'diversion':
+                    statusClass = 'bg-red-500/10 text-red-400 border border-red-500/20';
+                    statusText = 'On Diversion';
+                    break;
+                case 'notice':
+                    statusClass = 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+                    statusText = 'Special Notice';
+                    break;
+                default:
+                    statusClass = 'bg-slate-600/20 text-slate-400 border border-slate-600/30';
+                    statusText = 'Unknown';
+            }
+
+            updateDetailsContainer.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-slate-400 font-medium">New Status:</span>
+                    <span class="font-bold p-1 px-3 rounded-md ${statusClass} text-sm">${statusText}</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 font-medium">Notes:</span>
+                    <p class="text-slate-300 mt-1 pl-1">${hospital.notes || 'No additional notes.'}</p>
+                </div>
+            `;
+            
+            updateAlert.classList.remove('hidden');
+            
+            alertTimeout = setTimeout(() => {
+                updateAlert.classList.add('hidden');
+            }, 5000);
+        };
+
+        // --- INITIALIZATION ---
+        const main = async () => {
+            if (typeof __initial_auth_token !== 'undefined') {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+            
+            try {
+                const savedFilter = localStorage.getItem('hospitalFilter');
+                if (savedFilter) filteredHospitalIds = JSON.parse(savedFilter);
+            } catch(e) {
+                console.error("Could not load filter from localStorage:", e);
+                filteredHospitalIds = [];
+            }
+
+            await seedInitialData();
+
+            onSnapshot(hospitalsCollection, (snapshot) => {
+                if (!isInitialLoad) {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "modified" && (filteredHospitalIds.length === 0 || filteredHospitalIds.includes(change.doc.id))) {
+                            const updatedHospital = {id: change.doc.id, ...change.doc.data()};
+                            showUpdateAlert(updatedHospital);
+                        }
+                    });
+                }
+                
+                allHospitals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                if (localStorage.getItem('hospitalFilter') === null && isInitialLoad) {
+                    filteredHospitalIds = allHospitals.map(h => h.id);
+                }
+                renderBoard();
+                
+                isInitialLoad = false;
+            }, (error) => {
+                console.error("Error fetching live data: ", error);
+                document.getElementById('status-board').innerHTML = `<div class="md:col-span-2 lg:col-span-3 text-center p-10 bg-slate-800/50 rounded-lg shadow-lg"><p class="text-red-500">Error connecting to live data. Please refresh.</p></div>`;
+            });
+
+            updateClock();
+            setInterval(updateClock, 1000 * 60);
+        };
+
+        main();
+
+    </script>
+</body>
+</html>
