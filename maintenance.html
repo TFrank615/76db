@@ -26,8 +26,8 @@
     <div class="relative min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 z-10">
         <div class="w-full max-w-7xl mx-auto">
             <header class="text-center mb-8">
-                <h1 class="text-4xl font-bold tracking-wider text-white uppercase drop-shadow-lg">Unit Status</h1>
-                <p class="text-teal-400 mt-2">Live Status Board</p>
+                <h1 class="text-8xl font-bold tracking-wider text-white uppercase drop-shadow-lg">Unit Status</h1>
+                <p class="text-3xl text-teal-400 mt-4">Live Status Board</p>
             </header>
 
             <main>
@@ -35,16 +35,16 @@
                 <div class="bg-gray-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table id="status-table" class="w-full text-left">
-                            <thead class="text-xs text-gray-400 uppercase bg-white/5">
+                            <thead class="text-2xl text-gray-400 uppercase bg-white/5">
                                 <tr>
-                                    <th scope="col" class="px-6 py-3">Unit</th>
-                                    <th scope="col" class="px-6 py-3">Status</th>
-                                    <th scope="col" class="px-6 py-3">Location</th>
-                                    <th scope="col" class="px-6 py-3">Comments</th>
-                                    <th scope="col" class="px-6 py-3 text-right">Reported</th>
+                                    <th scope="col" class="px-6 py-4">Unit</th>
+                                    <th scope="col" class="px-6 py-4">Status</th>
+                                    <th scope="col" class="px-6 py-4">Location</th>
+                                    <th scope="col" class="px-6 py-4">Comments</th>
+                                    <th scope="col" class="px-6 py-4 text-right">Reported</th>
                                 </tr>
                             </thead>
-                            <tbody id="table-body" class="divide-y divide-gray-700/50">
+                            <tbody id="table-body" class="divide-y divide-gray-700/50 text-3xl">
                                 <!-- Data rows will be inserted here by JavaScript -->
                             </tbody>
                         </table>
@@ -52,7 +52,7 @@
                 </div>
             </main>
 
-            <footer class="text-center mt-8 text-sm text-gray-500">
+            <footer class="text-center mt-12 text-2xl text-gray-500">
                 <p id="last-updated">Last updated: --</p>
             </footer>
         </div>
@@ -88,7 +88,7 @@
 
             return `
                 <div class="flex items-center">
-                    <span class="h-2.5 w-2.5 rounded-full ${dotColor} mr-3 flex-shrink-0"></span>
+                    <span class="h-6 w-6 rounded-full ${dotColor} mr-6 flex-shrink-0"></span>
                     <span class="${textColor}">${formattedStatus || 'N/A'}</span>
                 </div>
             `;
@@ -107,11 +107,11 @@
                     <tr class="bg-transparent">
                         <td colspan="5" class="text-center p-12 text-gray-400">
                             <div class="flex flex-col items-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <svg class="mx-auto h-24 w-24 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z" />
                                 </svg>
-                                <h3 class="mt-2 text-sm font-medium text-gray-300">No Data Available</h3>
-                                <p class="mt-1 text-sm text-gray-500">Could not find any maintenance records in the sheet.</p>
+                                <h3 class="mt-4 text-3xl font-medium text-gray-300">No Data Available</h3>
+                                <p class="mt-2 text-2xl text-gray-500">Could not find any maintenance records in the sheet.</p>
                             </div>
                         </td>
                     </tr>`;
@@ -133,11 +133,11 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-white/5 transition-colors duration-200';
                 row.innerHTML = `
-                    <td class="px-6 py-4 font-medium text-white whitespace-nowrap">${item.Unit || ''}</td>
-                    <td class="px-6 py-4">${getStatusIndicator(item.Status)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${item.Location || ''}</td>
-                    <td class="px-6 py-4 text-gray-300">${item.Comments || ''}</td>
-                    <td class="px-6 py-4 text-right text-gray-400 whitespace-nowrap">${item.Reported || ''}</td>
+                    <td class="px-6 py-5 font-medium text-white whitespace-nowrap">${item.Unit || ''}</td>
+                    <td class="px-6 py-5">${getStatusIndicator(item.Status)}</td>
+                    <td class="px-6 py-5 whitespace-nowrap">${item.Location || ''}</td>
+                    <td class="px-6 py-5 text-gray-300">${item.Comments || ''}</td>
+                    <td class="px-6 py-5 text-right text-gray-400 whitespace-nowrap">${item.Reported || ''}</td>
                 `;
                 tableBody.appendChild(row);
             });
