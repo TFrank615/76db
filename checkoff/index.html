@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>76 EMS Checkoff</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem; /* 8px */
+        }
+        .checklist-item input[type="checkbox"] {
+            width: 1.15rem; /* 18px */
+            height: 1.15rem; /* 18px */
+            margin-right: 0.5rem; /* 8px */
+            cursor: pointer;
+            accent-color: #3b82f6; /* blue-500 */
+        }
+        .checklist-item label {
+            flex-grow: 1;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="form-container" class="container mx-auto p-4 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Harmony Township EMS</h1>
+            <p class="text-lg md:text-xl text-gray-700">Inventory Check List</p>
+        </header>
+
+        <!-- Date and Personnel Info -->
+        <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date:</label>
+                    <input type="date" id="date" name="date" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="personnel" class="block text-sm font-medium text-gray-700 mb-1">Personnel:</label>
+                    <input type="text" id="personnel" name="personnel" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Enter names...">
+                </div>
+                <div>
+                    <label for="vehicle" class="block text-sm font-medium text-gray-700 mb-1">Vehicle:</label>
+                    <select id="vehicle" name="vehicle" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="" disabled selected>Select</option>
+                        <option value="1-76">1-76</option>
+                        <option value="2-76">2-76</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checklist Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            <!-- Vehicle Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Vehicle</h2>
+                <div class="flex items-center mb-2">
+                    <label for="odometer" class="mr-2 text-sm">Odometer</label>
+                    <input type="number" id="odometer" name="odometer" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Numbers only">
+                </div>
+                <div class="checklist-item"><input type="checkbox" id="siren"><label for="siren">Siren</label></div>
+                <div class="checklist-item"><input type="checkbox" id="air-horn"><label for="air-horn">Air Horn</label></div>
+                <div class="checklist-item"><input type="checkbox" id="std-horn"><label for="std-horn">Std Horn</label></div>
+                <div class="checklist-item"><input type="checkbox" id="oil"><label for="oil">Oil</label></div>
+                <div class="checklist-item"><input type="checkbox" id="coolant"><label for="coolant">Coolant</label></div>
+                <div class="checklist-item"><input type="checkbox" id="washer-fluid"><label for="washer-fluid">Washer Fluid</label></div>
+                <div class="checklist-item"><input type="checkbox" id="ac-heat"><label for="ac-heat">A/C/Heat front/rear</label></div>
+                <div class="flex items-center mb-2">
+                    <label for="fuel-level" class="mr-2 text-sm">Fuel</label>
+                    <select id="fuel-level" name="fuel-level" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <option value="" disabled selected>Select</option>
+                        <option value="full">Full</option>
+                        <option value="3/4">3/4</option>
+                        <option value="1/2">1/2</option>
+                        <option value="1/4">1/4</option>
+                    </select>
+                </div>
+                <div id="def-level-container" class="flex items-center mb-2">
+                    <label for="def-level" class="mr-2 text-sm">DEF</label>
+                    <select id="def-level" name="def-level" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <option value="" disabled selected>Select</option>
+                        <option value="full">Full</option>
+                        <option value="3/4">3/4</option>
+                        <option value="1/2">1/2</option>
+                        <option value="1/4">1/4</option>
+                    </select>
+                </div>
+                <div class="checklist-item"><input type="checkbox" id="clean-inside"><label for="clean-inside">Cleanliness Inside</label></div>
+                <div class="checklist-item"><input type="checkbox" id="clean-outside"><label for="clean-outside">Cleanliness Outside</label></div>
+            </div>
+
+            <!-- Lights Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Lights</h2>
+                <div class="checklist-item"><input type="checkbox" id="scene-lights"><label for="scene-lights">Scene/Load Lights</label></div>
+                <div class="checklist-item"><input type="checkbox" id="marker-lights"><label for="marker-lights">Marker Lights</label></div>
+                <div class="checklist-item"><input type="checkbox" id="brake-lights"><label for="brake-lights">Brake Lights</label></div>
+                <div class="checklist-item"><input type="checkbox" id="reverse-alarm"><label for="reverse-alarm">Reverse Light Alarm</label></div>
+                <div class="checklist-item"><input type="checkbox" id="turn-signals"><label for="turn-signals">Turn Signals</label></div>
+                <div class="checklist-item"><input type="checkbox" id="interior-lights"><label for="interior-lights">Interior Lights</label></div>
+                <div class="checklist-item"><input type="checkbox" id="light-bar"><label for="light-bar">Light Bar Front/Rear</label></div>
+                <div class="checklist-item"><input type="checkbox" id="helo-lights"><label for="helo-lights">Helo Landing Lights</label></div>
+            </div>
+
+            <!-- Patient Compartments Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Patient Compartments</h2>
+                <div class="flex items-center mb-2">
+                    <label for="o2-stationary" class="mr-2 w-24 shrink-0 text-sm">O2 Stationary</label>
+                    <input type="number" id="o2-stationary" name="o2-stationary" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="PSI">
+                </div>
+                <div class="flex items-center">
+                    <label for="o2-portable" class="mr-2 w-24 shrink-0 text-sm">O2 Portable</label>
+                    <input type="number" id="o2-portable" name="o2-portable" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="PSI">
+                </div>
+            </div>
+
+             <!-- First-In Bag Section -->
+             <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">First-In Bag</h2>
+                <div class="checklist-item"><input type="checkbox" id="glucometer"><label for="glucometer">Glucometer</label></div>
+                <div class="checklist-item"><input type="checkbox" id="bp-cuff"><label for="bp-cuff">B/P cuffs/stethoscope</label></div>
+                <div class="checklist-item"><input type="checkbox" id="oral-glucose"><label for="oral-glucose">Oral Glucose</label></div>
+                <div class="checklist-item"><input type="checkbox" id="pulse-ox"><label for="pulse-ox">Pulse Ox</label></div>
+                <div class="checklist-item"><input type="checkbox" id="tourniquet"><label for="tourniquet">Tourniquet</label></div>
+                <div class="checklist-item"><input type="checkbox" id="thermometer"><label for="thermometer">Thermometer</label></div>
+                <div class="checklist-item"><input type="checkbox" id="misc-bandages"><label for="misc-bandages">Misc. Bandages</label></div>
+                <div class="checklist-item"><input type="checkbox" id="scissors"><label for="scissors">Scissors</label></div>
+                <div class="checklist-item"><input type="checkbox" id="gloves"><label for="gloves">Gloves</label></div>
+                <div class="checklist-item"><input type="checkbox" id="pocket-mask"><label for="pocket-mask">Pocket Mask</label></div>
+            </div>
+
+            <!-- Lifepak Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">LifePak</h2>
+                <div class="checklist-item"><input type="checkbox" id="lifepak-battery-levels"><label for="lifepak-battery-levels">LifePak Battery Levels</label></div>
+                <div class="mb-2">
+                    <input type="text" id="lifepak-battery-notes" name="lifepak-battery-notes" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Add notes...">
+                </div>
+                <div class="checklist-item"><input type="checkbox" id="lifepak-extra-battery"><label for="lifepak-extra-battery">LifePak Extra Battery</label></div>
+                <div class="checklist-item"><input type="checkbox" id="lifepak-electrodes-defib"><label for="lifepak-electrodes-defib">LifePak Electrodes/Defib</label></div>
+                <div class="checklist-item"><input type="checkbox" id="lifepak-paper"><label for="lifepak-paper">LifePak Paper</label></div>
+            </div>
+
+            <!-- Intubation Kit Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Intubation Kit</h2>
+                <div class="checklist-item"><input type="checkbox" id="blades"><label for="blades">Blades</label></div>
+                <div class="checklist-item"><input type="checkbox" id="laryngoscopes"><label for="laryngoscopes">Laryngoscopes Tested</label></div>
+                <div class="checklist-item"><input type="checkbox" id="oral-airways"><label for="oral-airways">Oral Airways</label></div>
+                <div class="checklist-item"><input type="checkbox" id="nasal-airway"><label for="nasal-airway">Nasal airway</label></div>
+                <div class="checklist-item"><input type="checkbox" id="et-tubes"><label for="et-tubes">Assorted ET tubes</label></div>
+                <div class="checklist-item"><input type="checkbox" id="edd-bamm"><label for="edd-bamm">EDD, BAMM, COLORMETRIC</label></div>
+                <div class="checklist-item"><input type="checkbox" id="lmas"><label for="lmas">LMAS - sizes 1-5</label></div>
+            </div>
+            
+            <!-- Drug Compartments Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Drug Compartments</h2>
+                <div class="mb-2">
+                    <label for="als-drug-bag-exp" class="block text-sm font-medium text-gray-700 mb-1">ALS Drug Bag Exp Date</label>
+                    <input type="date" id="als-drug-bag-exp" name="als-drug-bag-exp" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </div>
+                <div class="flex items-center mb-2">
+                    <label for="als-bag-tag" class="mr-2 shrink-0 whitespace-nowrap text-sm">ALS Bag Tag #</label>
+                    <input type="number" id="als-bag-tag" name="als-bag-tag" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="4 digits" oninput="this.value=this.value.slice(0,4)">
+                </div>
+                <div class="checklist-item"><input type="checkbox" id="iv-bag"><label for="iv-bag">IV Bag/1000NS, 16-22 needles</label></div>
+                <div class="mb-2">
+                    <label for="exp-date-drugs" class="block text-sm font-medium text-gray-700 mb-1">Exp Date drugs in Drawer</label>
+                    <input type="month" id="exp-date-drugs" name="exp-date-drugs" class="w-full p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </div>
+                <div class="checklist-item"><input type="checkbox" id="verify-drug-cabinets"><label for="verify-drug-cabinets">Verify all Drug Cabinets Locked</label></div>
+            </div>
+
+            <!-- Inside Compartment Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Inside Compartment</h2>
+                <div class="checklist-item"><input type="checkbox" id="o2-supplies"><label for="o2-supplies">02 Supplies</label></div>
+                <div class="checklist-item"><input type="checkbox" id="per-trach"><label for="per-trach">Per Trach/Combi tube</label></div>
+                <div class="checklist-item"><input type="checkbox" id="gloves-inside"><label for="gloves-inside">Gloves</label></div>
+                <div class="checklist-item"><input type="checkbox" id="various-bandages"><label for="various-bandages">Various Bandages</label></div>
+                <div class="checklist-item"><input id="linens" type="checkbox"><label for="linens">Linens</label></div>
+                <div class="checklist-item"><input id="suction-units" type="checkbox"><label for="suction-units">Suction units tested</label></div>
+                <div class="checklist-item"><input id="clipboard" type="checkbox"><label for="clipboard">Clipboard/reports/pens</label></div>
+                <div class="checklist-item"><input id="tablet-battery" type="checkbox"><label for="tablet-battery">Tablet Battery</label></div>
+                <div class="checklist-item"><input id="pedi-bag" type="checkbox"><label for="pedi-bag">Pedi Bag</label></div>
+            </div>
+
+            <!-- Outside Compartment Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                 <h2 class="text-lg font-semibold mb-3 border-b pb-2 text-gray-900">Outside Compartment</h2>
+                <div class="grid grid-cols-1">
+                    <div class="checklist-item"><input type="checkbox" id="bb-collars"><label for="bb-collars">B/B Collars</label></div>
+                    <div class="checklist-item"><input type="checkbox" id="stair-chair"><label for="stair-chair">Stair Chair</label></div>
+                    <div class="checklist-item"><input type="checkbox" id="vac-u-splints"><label for="vac-u-splints">Vac-U-Splints</label></div>
+                    <div class="checklist-item"><input type="checkbox" id="traction-splints"><label for="traction-splints">Traction Splints</label></div>
+                    <div class="checklist-item"><input type="checkbox" id="triage-bag"><label for="triage-bag">Triage Bag</label></div>
+                    <div class="checklist-item"><input type="checkbox" id="lucas-battery"><label for="lucas-battery">Lucas Battery</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="bg-white p-4 rounded-lg shadow-md mt-4">
+            <h2 class="text-lg font-semibold mb-2 text-gray-900">Comments</h2>
+            <textarea id="comments" name="comments" rows="3" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Enter any comments or notes here..."></textarea>
+        </div>
+
+
+        <!-- Action Buttons -->
+        <div id="buttonContainer" class="text-center mt-6 space-x-4">
+            <button id="saveEntryButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save Entry
+            </button>
+            <a href="view_entries.html" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                View Entries
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center mt-6">
+            <p class="text-xs text-gray-600">*Staple Life Pac check sheet on backside*</p>
+        </footer>
+    </div>
+
+    <!-- Saved Entries Display Removed -->
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBW1nscMk_g9hcc908p1rTUXcWU7qQgmNU",
+            authDomain: "htfd-squad-checkoffs.firebaseapp.com",
+            projectId: "htfd-squad-checkoffs",
+            storageBucket: "htfd-squad-checkoffs.firebasestorage.app",
+            messagingSenderId: "1049421227560",
+            appId: "1:1049421227560:web:d6f5cf5b7d7b6c0726771d",
+            measurementId: "G-QZ2T9GG88K"
+        };
+        const appId = firebaseConfig.appId;
+        
+        // --- Initialize Firebase ---
+        let app, db;
+        try {
+             app = initializeApp(firebaseConfig);
+             db = getFirestore(app);
+             console.log("Firebase initialized successfully");
+        } catch(e) {
+            console.error("Firebase initialization error:", e);
+            alert("Error: Could not connect to the database. Please check the console.");
+        }
+        
+        // --- UI Logic for Hiding DEF field ---
+        const vehicleSelect = document.getElementById('vehicle');
+        const defLevelContainer = document.getElementById('def-level-container');
+
+        const toggleDefField = () => {
+            if (vehicleSelect.value === '2-76') {
+                defLevelContainer.style.display = 'none';
+            } else {
+                defLevelContainer.style.display = 'flex'; // Use 'flex' as it's a flex container
+            }
+        };
+
+        vehicleSelect.addEventListener('change', toggleDefField);
+        // Initial check in case of page reload with a selection
+        toggleDefField();
+
+
+        // --- Firestore Collection Reference ---
+        const getChecklistCollection = () => {
+            return collection(db, `artifacts/${appId}/public/data/checklists`);
+        };
+
+        // --- Gather Form Data ---
+        const getFormData = () => {
+            const formData = {};
+            const inputs = document.querySelectorAll('#form-container input, #form-container select, #form-container textarea');
+            inputs.forEach(input => {
+                if (input.id) {
+                    if (input.type === 'checkbox') {
+                        formData[input.id] = input.checked;
+                    } else {
+                        formData[input.id] = input.value;
+                    }
+                }
+            });
+            formData.createdAt = serverTimestamp(); // Add a server-side timestamp
+            return formData;
+        };
+
+        // --- Render Entries Function Removed ---
+
+        // --- Save Entry to Firestore ---
+        document.getElementById('saveEntryButton').addEventListener('click', async () => {
+            const saveButton = document.getElementById('saveEntryButton');
+            const collectionRef = getChecklistCollection();
+            if (!collectionRef) {
+                alert("Cannot save: Database connection not available.");
+                return;
+            }
+            
+            const data = getFormData();
+
+            if (!data.date || !data.personnel || !data.vehicle) {
+                alert("Please fill out the Date, Personnel, and Vehicle fields before saving.");
+                return;
+            }
+
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+
+            try {
+                await addDoc(collectionRef, data);
+                console.log("Document successfully written!");
+                
+                // Reset form fields after saving by reloading the page for simplicity
+                alert('Entry saved successfully!');
+                window.location.reload();
+
+            } catch (error) {
+                console.error("Error writing document: ", error);
+                alert("Error saving entry. Please check the console for details.");
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Entry';
+            }
+        });
+
+        // --- Main App Logic (Snapshot listener removed) ---
+
+    </script>
+</body>
+</html>
+
+
+

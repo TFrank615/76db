@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist Entries</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" xintegrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .details-container.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Saved Checklist Entries</h1>
+            <p class="text-lg md:text-xl text-gray-700">Harmony Township EMS</p>
+        </header>
+
+        <div class="text-center mb-6">
+             <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                ← Back to Checklist Form
+            </a>
+        </div>
+
+        <!-- Saved Entries Display -->
+        <div class="bg-white p-4 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-3 border-b pb-2 text-gray-900">All Entries</h2>
+            <div id="entriesList" class="space-y-3">
+                <p class="text-gray-500">Loading entries...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBW1nscMk_g9hcc908p1rTUXcWU7qQgmNU",
+            authDomain: "htfd-squad-checkoffs.firebaseapp.com",
+            projectId: "htfd-squad-checkoffs",
+            storageBucket: "htfd-squad-checkoffs.firebasestorage.app",
+            messagingSenderId: "1049421227560",
+            appId: "1:1049421227560:web:d6f5cf5b7d7b6c0726771d",
+            measurementId: "G-QZ2T9GG88K"
+        };
+        const appId = firebaseConfig.appId;
+        
+        // --- Initialize Firebase ---
+        let app, db;
+        try {
+             app = initializeApp(firebaseConfig);
+             db = getFirestore(app);
+             console.log("Firebase initialized successfully");
+        } catch(e) {
+            console.error("Firebase initialization error:", e);
+            document.getElementById('entriesList').innerHTML = `<p class="text-red-500">Error: Could not connect to the database. Please check the console.</p>`;
+        }
+        
+        // --- Firestore Collection Reference ---
+        const getChecklistCollection = () => {
+            return collection(db, `artifacts/${appId}/public/data/checklists`);
+        };
+
+        // --- Data Definitions for Rendering ---
+        const fieldLabels = {
+            date: 'Date', personnel: 'Personnel', vehicle: 'Vehicle', comments: 'Comments', odometer: 'Odometer',
+            siren: 'Siren', 'air-horn': 'Air Horn', 'std-horn': 'Std Horn', oil: 'Oil', coolant: 'Coolant',
+            'washer-fluid': 'Washer Fluid', 'ac-heat': 'A/C/Heat front/rear', 'fuel-level': 'Fuel Level',
+            'def-level': 'DEF Level', 'clean-inside': 'Cleanliness Inside', 'clean-outside': 'Cleanliness Outside',
+            'scene-lights': 'Scene/Load Lights', 'marker-lights': 'Marker Lights', 'brake-lights': 'Brake Lights',
+            'reverse-alarm': 'Reverse Light Alarm', 'turn-signals': 'Turn Signals', 'interior-lights': 'Interior Lights',
+            'light-bar': 'Light Bar Front/Rear', 'helo-lights': 'Helo Landing Lights', 'o2-stationary': 'O2 Stationary (PSI)',
+            'o2-portable': 'O2 Portable (PSI)', glucometer: 'Glucometer', 'bp-cuff': 'B/P cuffs/stethoscope',
+            'oral-glucose': 'Oral Glucose', 'pulse-ox': 'Pulse Ox', tourniquet: 'Tourniquet', thermometer: 'Thermometer',
+            'misc-bandages': 'Misc. Bandages', scissors: 'Scissors', gloves: 'Gloves', 'pocket-mask': 'Pocket Mask',
+            'lifepak-battery-levels': 'LifePak Battery Levels', 'lifepak-battery-notes': 'LifePak Battery Notes',
+            'lifepak-extra-battery': 'LifePak Extra Battery', 'lifepak-electrodes-defib': 'LifePak Electrodes/Defib',
+            'lifepak-paper': 'LifePak Paper', blades: 'Blades', laryngoscopes: 'Laryngoscopes Tested',
+            'oral-airways': 'Oral Airways', 'nasal-airway': 'Nasal airway', 'et-tubes': 'Assorted ET tubes',
+            'edd-bamm': 'EDD, BAMM, COLORMETRIC', lmas: 'LMAS - sizes 1-5', 'als-drug-bag-exp': 'ALS Drug Bag Exp Date',
+            'als-bag-tag': 'ALS Bag Tag #', 'iv-bag': 'IV Bag/1000NS, 16-22 needles', 'exp-date-drugs': 'Exp Date drugs in Drawer',
+            'verify-drug-cabinets': 'Verify all Drug Cabinets Locked', 'o2-supplies': 'O2 Supplies',
+            'per-trach': 'Per Trach/Combi tube', 'gloves-inside': 'Gloves (Inside)', 'various-bandages': 'Various Bandages',
+            linens: 'Linens', 'suction-units': 'Suction units tested', clipboard: 'Clipboard/reports/pens',
+            'tablet-battery': 'Tablet Battery', 'pedi-bag': 'Pedi Bag', 'bb-collars': 'B/B Collars',
+            'stair-chair': 'Stair Chair', 'vac-u-splints': 'Vac-U-Splints', 'traction-splints': 'Traction Splints',
+            'triage-bag': 'Triage Bag', 'lucas-battery': 'Lucas Battery'
+        };
+
+        const sections = [
+            { title: 'Vehicle', keys: ['odometer', 'fuel-level', 'def-level', 'siren', 'air-horn', 'std-horn', 'oil', 'coolant', 'washer-fluid', 'ac-heat', 'clean-inside', 'clean-outside'] },
+            { title: 'Lights', keys: ['scene-lights', 'marker-lights', 'brake-lights', 'reverse-alarm', 'turn-signals', 'interior-lights', 'light-bar', 'helo-lights'] },
+            { title: 'Patient Compartments', keys: ['o2-stationary', 'o2-portable'] },
+            { title: 'First-In Bag', keys: ['glucometer', 'bp-cuff', 'oral-glucose', 'pulse-ox', 'tourniquet', 'thermometer', 'misc-bandages', 'scissors', 'gloves', 'pocket-mask'] },
+            { title: 'LifePak', keys: ['lifepak-battery-levels', 'lifepak-battery-notes', 'lifepak-extra-battery', 'lifepak-electrodes-defib', 'lifepak-paper'] },
+            { title: 'Intubation Kit', keys: ['blades', 'laryngoscopes', 'oral-airways', 'nasal-airway', 'et-tubes', 'edd-bamm', 'lmas'] },
+            { title: 'Drug Compartments', keys: ['als-drug-bag-exp', 'als-bag-tag', 'iv-bag', 'exp-date-drugs', 'verify-drug-cabinets'] },
+            { title: 'Inside Compartment', keys: ['o2-supplies', 'per-trach', 'gloves-inside', 'various-bandages', 'linens', 'suction-units', 'clipboard', 'tablet-battery', 'pedi-bag'] },
+            { title: 'Outside Compartment', keys: ['bb-collars', 'stair-chair', 'vac-u-splints', 'traction-splints', 'triage-bag', 'lucas-battery'] },
+            { title: 'Comments', keys: ['comments'] }
+        ];
+        
+        // --- Generate PDF for a single entry ---
+        const generatePdfForEntry = (entry) => {
+            const dateForTitle = entry.date || 'N_A';
+            const vehicleForTitle = entry.vehicle || 'N_A';
+            const filename = `Checklist_${vehicleForTitle}_${dateForTitle}.pdf`;
+
+            let formattedDate = 'N/A';
+            if (entry.date) {
+                const dateParts = entry.date.split('-'); // YYYY-MM-DD
+                if (dateParts.length === 3) {
+                    formattedDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`; // MM/DD/YYYY
+                } else {
+                    formattedDate = entry.date;
+                }
+            }
+            
+            let leftColPdf = '';
+            let middleColPdf = '';
+            let rightColPdf = '';
+            
+            const leftColumnSections = ['Vehicle', 'Lights'];
+            const middleColumnSections = ['Patient Compartments', 'LifePak', 'Intubation Kit', 'Drug Compartments'];
+            const rightColumnSections = ['First-In Bag', 'Inside Compartment', 'Outside Compartment'];
+
+            sections.forEach(section => {
+                 if(section.title === 'Comments') return;
+                 
+                 const sectionItems = [];
+                 section.keys.forEach(key => {
+                    const value = entry[key];
+                    if (value) {
+                         const label = fieldLabels[key] || key;
+                         if (typeof value === 'boolean' && value === true) {
+                            sectionItems.push(`<div class="item">✓ ${label}</div>`);
+                         } else if (typeof value !== 'boolean') {
+                            let displayValue = value;
+                            if (key === 'als-drug-bag-exp' && value.includes('-')) {
+                                const parts = value.split('-');
+                                if (parts.length === 3) displayValue = `${parts[1]}/${parts[2]}/${parts[0]}`;
+                            }
+                            if (key === 'exp-date-drugs' && value.includes('-')) {
+                                const parts = value.split('-');
+                                if (parts.length === 2) displayValue = `${parts[1]}/${parts[0]}`;
+                            }
+                            if(key === 'def-level' && entry.vehicle === '2-76') return;
+                            sectionItems.push(`<div class="item"><span class="item-label">${label}:</span> ${displayValue}</div>`);
+                         }
+                    }
+                 });
+
+                 if (sectionItems.length > 0) {
+                    const sectionPdfHtml = `
+                        <div class="section">
+                            <h3>${section.title}</h3>
+                            <div class="items-container">${sectionItems.join('')}</div>
+                        </div>
+                    `;
+                    if (leftColumnSections.includes(section.title)) {
+                        leftColPdf += sectionPdfHtml;
+                    } else if (middleColumnSections.includes(section.title)) {
+                        middleColPdf += sectionPdfHtml;
+                    } else if (rightColumnSections.includes(section.title)) {
+                        rightColPdf += sectionPdfHtml;
+                    }
+                 }
+            });
+
+            let content = `
+                <style>
+                    body { font-family: 'Inter', sans-serif; font-size: 10px; color: #333; }
+                    .header { text-align: center; }
+                    h1 { font-size: 18px; margin-bottom: 5px; color: #000; }
+                    h2 { font-size: 14px; margin-bottom: 12px; color: #555; }
+                    .info { margin-bottom: 15px; font-size: 12px; }
+                    .main-container { display: flex; flex-direction: row; gap: 10px; align-items: flex-start; }
+                    .column { width: 32%; display: flex; flex-direction: column; gap: 10px; }
+                    .section { page-break-inside: avoid; border: 1px solid #ddd; padding: 8px; border-radius: 4px; }
+                    .section h3 { font-size: 12px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 6px; }
+                    .item { padding: 1px 0; }
+                    .item-label { font-weight: bold; }
+                    .comments-section { margin-top: 10px; }
+                </style>
+                <div class="header">
+                    <h1>Harmony Township EMS</h1>
+                    <h2>Inventory Checklist Report</h2>
+                    <div class="info">
+                        <strong>Date:</strong> ${formattedDate} | 
+                        <strong>Vehicle:</strong> ${entry.vehicle || 'N/A'} | 
+                        <strong>Personnel:</strong> ${entry.personnel || 'N/A'}
+                    </div>
+                </div>
+                <div class="main-container">
+                    <div class="column">${leftColPdf}</div>
+                    <div class="column">${middleColPdf}</div>
+                    <div class="column">${rightColPdf}</div>
+                </div>
+            `;
+            if (entry.comments) {
+                content += `
+                    <div class="section comments-section">
+                        <h3>Comments</h3>
+                        <p>${entry.comments}</p>
+                    </div>
+                `;
+            }
+
+            const element = document.createElement('div');
+            element.innerHTML = content;
+            
+            html2pdf().from(element).set({
+                margin: 0.4,
+                filename: filename,
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            }).save();
+        };
+
+        // --- Render Entries ---
+        const renderEntries = (entries) => {
+            const listElement = document.getElementById('entriesList');
+            if (!listElement) return;
+
+            if (entries.length === 0) {
+                listElement.innerHTML = `<p class="text-gray-500">No entries saved yet.</p>`;
+                return;
+            }
+
+            listElement.innerHTML = '';
+            
+            entries.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
+
+            entries.forEach(entry => {
+                const itemContainer = document.createElement('div');
+                itemContainer.className = 'border rounded-md bg-gray-50';
+
+                // --- Header ---
+                const header = document.createElement('div');
+                header.className = 'p-3 flex justify-between items-center';
+                
+                let displayDate = 'No Date';
+                if (entry.date) {
+                    const dateParts = entry.date.split('-');
+                    const utcDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+                    displayDate = utcDate.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+                }
+                const vehicle = entry.vehicle || 'N/A';
+                const personnel = entry.personnel || 'N/A';
+
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'cursor-pointer flex-grow';
+                summaryDiv.innerHTML = `
+                    <p class="font-semibold text-gray-800">
+                        <span class="text-blue-600">${displayDate}</span>
+                        <span class="text-gray-500 font-medium">| Vehicle: ${vehicle}</span>
+                    </p>
+                    <p class="text-sm text-gray-600">${personnel}</p>
+                `;
+                
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'flex items-center space-x-4';
+                
+                const pdfButton = document.createElement('button');
+                pdfButton.className = 'generate-pdf-btn text-sm font-medium text-gray-600 hover:text-red-600 transition flex items-center';
+                pdfButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" clip-rule="evenodd" /></svg> PDF`;
+
+                const toggleIcon = document.createElement('div');
+                toggleIcon.className = 'toggle-icon text-sm font-medium text-blue-600 cursor-pointer';
+                toggleIcon.textContent = 'View Details ▼';
+                
+                buttonGroup.appendChild(pdfButton);
+                buttonGroup.appendChild(toggleIcon);
+                header.appendChild(summaryDiv);
+                header.appendChild(buttonGroup);
+
+
+                // --- Details Container ---
+                const detailsContainer = document.createElement('div');
+                detailsContainer.className = 'details-container hidden p-4 border-t bg-gray-100';
+                
+                let leftColHtml = '';
+                let middleColHtml = '';
+                let rightColHtml = '';
+
+                const leftColumnSections = ['Vehicle', 'Lights'];
+                const middleColumnSections = ['Patient Compartments', 'LifePak', 'Intubation Kit', 'Drug Compartments'];
+                const rightColumnSections = ['First-In Bag', 'Inside Compartment', 'Outside Compartment'];
+
+                sections.forEach(section => {
+                    if (section.title === 'Comments') return;
+
+                    const sectionItems = [];
+                    section.keys.forEach(key => {
+                        const value = entry[key];
+                        if (value) {
+                            const label = fieldLabels[key] || key;
+                            if (typeof value === 'boolean' && value === true) {
+                                sectionItems.push(`<div class="flex items-center text-base"><svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>${label}</span></div>`);
+                            } else if (typeof value !== 'boolean') {
+                                if(key === 'def-level' && entry.vehicle === '2-76') return;
+                                let displayValue = value;
+                                if (key === 'als-drug-bag-exp' && value.includes('-')) {
+                                    const parts = value.split('-');
+                                    if (parts.length === 3) displayValue = `${parts[1]}/${parts[2]}/${parts[0]}`;
+                                }
+                                if (key === 'exp-date-drugs' && value.includes('-')) {
+                                    const parts = value.split('-');
+                                    if (parts.length === 2) displayValue = `${parts[1]}/${parts[0]}`;
+                                }
+                                sectionItems.push(`<div class="text-base"><span class="font-medium">${label}:</span> ${displayValue}</div>`);
+                            }
+                        }
+                    });
+
+                    if (sectionItems.length > 0) {
+                        const sectionHtml = `<div class="p-3 border border-gray-200 rounded-md bg-white shadow-sm flex flex-col mb-4"><h4 class="font-semibold text-lg mb-2 text-gray-800 border-b pb-1">${section.title}</h4><div class="space-y-1 mt-2">${sectionItems.join('')}</div></div>`;
+                        
+                        if (leftColumnSections.includes(section.title)) {
+                            leftColHtml += sectionHtml;
+                        } else if (middleColumnSections.includes(section.title)) {
+                            middleColHtml += sectionHtml;
+                        } else if (rightColumnSections.includes(section.title)) {
+                            rightColHtml += sectionHtml;
+                        }
+                    }
+                });
+
+                let detailsContent = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start"><div class="flex flex-col">${leftColHtml}</div><div class="flex flex-col">${middleColHtml}</div><div class="flex flex-col">${rightColHtml}</div></div>`;
+                
+                if (entry.comments) {
+                     detailsContent += `<div class="mt-4 p-3 border border-gray-200 rounded-md bg-white shadow-sm"><h4 class="font-semibold text-lg mb-2 text-gray-800 border-b pb-1">Comments</h4><p class="text-base mt-2">${entry.comments}</p></div>`;
+                }
+
+                detailsContainer.innerHTML = detailsContent;
+                itemContainer.appendChild(header);
+                itemContainer.appendChild(detailsContainer);
+                listElement.appendChild(itemContainer);
+
+                // --- Click Events ---
+                const toggleDetails = () => {
+                    detailsContainer.classList.toggle('hidden');
+                    toggleIcon.textContent = detailsContainer.classList.contains('hidden') ? 'View Details ▼' : 'Hide Details ▲';
+                };
+                
+                summaryDiv.addEventListener('click', toggleDetails);
+                toggleIcon.addEventListener('click', toggleDetails);
+                
+                pdfButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    generatePdfForEntry(entry);
+                });
+            });
+        };
+
+        // --- Main App Logic ---
+        const main = () => {
+            const collectionRef = getChecklistCollection();
+            if (collectionRef) {
+                onSnapshot(query(collectionRef), (snapshot) => {
+                    const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderEntries(entries);
+                });
+            }
+        };
+
+        main();
+
+    </script>
+</body>
+</html>
+
+
+
+
