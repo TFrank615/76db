@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Status Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use the Inter font family */
+        body { 
+            font-family: 'Inter', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Background gradient effect -->
+    <div class="absolute top-0 left-0 w-full h-full bg-cover bg-center z-0" style="background-image: radial-gradient(circle at 20% 20%, rgba(34, 197, 94, 0.1), transparent 40%), radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1), transparent 40%);"></div>
+    
+    <!-- Main content container -->
+    <div class="relative min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 z-10">
+        <div class="w-full max-w-7xl mx-auto">
+            <header class="text-center mb-8">
+                <!-- Responsive header text -->
+                <h1 class="text-4xl sm:text-6xl md:text-7xl font-bold tracking-wider text-white uppercase drop-shadow-lg">Unit Status</h1>
+                <p class="text-lg sm:text-xl md:text-2xl text-teal-400 mt-2">Live Status Board</p>
+            </header>
+
+            <main>
+                <!-- Container for status cards -->
+                <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    <!-- Data cards will be inserted here by JavaScript -->
+                </div>
+            </main>
+
+            <footer class="text-center mt-12 text-sm sm:text-base text-gray-500">
+                <p id="last-updated">Last updated: --</p>
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration for the Google Sheet
+        const CONFIG = {
+            maintenanceSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=1918136459&single=true&output=csv',
+            cacheDurationMinutes: 5
+        };
+
+        /**
+         * Parses CSV text into an array of objects.
+         * Handles quoted fields containing commas.
+         * @param {string} text The raw CSV text.
+         * @returns {Array<Object>}
+         */
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const headers = lines.shift().split(',').map(h => h.trim().replace(/"/g, ''));
+            
+            return lines.map(line => {
+                // This regex handles quoted fields with commas inside.
+                const values = line.match(/(".*?"|[^",\r]+)(?=\s*,|\s*$)/g) || [];
+                
+                return headers.reduce((obj, header, i) => {
+                    let value = (values[i] || '').trim();
+                    // Remove quotes from start and end if they exist
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1);
+                    }
+                    // Replace double double-quotes with a single double-quote (CSV standard for escaping)
+                    value = value.replace(/""/g, '"');
+                    obj[header] = value;
+                    return obj;
+                }, {});
+            });
+        }
+
+        /**
+         * Fetches and parses data from the Google Sheet URL.
+         * @param {string} url The Google Sheet CSV URL.
+         * @param {string} key Not used in this implementation, but kept for compatibility.
+         * @param {function} callback The function to call with the parsed data.
+         */
+        async function loadSheetData(url, key, callback) {
+            console.log("Fetching data from Google Sheet...");
+            try {
+                // Add a cache-busting parameter to the URL to ensure fresh data
+                const fetchUrl = `${url}&t=${new Date().getTime()}`;
+                const response = await fetch(fetchUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const csvText = await response.text();
+                const data = parseCSV(csvText);
+                callback(data);
+            } catch (error) {
+                console.error("Failed to load or parse sheet data:", error);
+                callback([]); // Pass empty array on error to display the 'No Data' message
+            }
+        }
+
+
+        /**
+         * Creates a status indicator with a colored dot.
+         * @param {string} statusText - The status text from the data.
+         * @returns {string} HTML string for the status element.
+         */
+        function getStatusIndicator(statusText) {
+            const status = (statusText || '').trim().toLowerCase();
+            let dotColor = 'bg-gray-500'; // Default
+            let textColor = 'text-gray-300';
+
+            if (status.includes('in service')) {
+                dotColor = 'bg-green-500';
+                textColor = 'text-green-300';
+            } else if (status.includes('oos')) {
+                dotColor = 'bg-red-500';
+                textColor = 'text-red-300';
+            } else if (status.length > 0) {
+                dotColor = 'bg-yellow-500';
+                textColor = 'text-yellow-300';
+            }
+
+            const formattedStatus = statusText ? statusText.charAt(0).toUpperCase() + statusText.slice(1) : 'N/A';
+
+            return `
+                <div class="flex items-center">
+                    <span class="h-4 w-4 rounded-full ${dotColor} mr-3 flex-shrink-0"></span>
+                    <span class="font-semibold ${textColor}">${formattedStatus}</span>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the maintenance data into cards.
+         * @param {Array<Object>} maintenanceData - The data fetched from the sheet.
+         */
+        function displayData(maintenanceData) {
+            const cardsContainer = document.getElementById('cards-container');
+            cardsContainer.innerHTML = ''; // Clear previous data
+
+            if (!maintenanceData || maintenanceData.length === 0) {
+                cardsContainer.className = 'flex justify-center'; // Adjust container for single message
+                cardsContainer.innerHTML = `
+                    <div class="bg-gray-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 p-8 sm:p-12 text-center">
+                        <svg class="mx-auto h-16 w-16 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z" />
+                        </svg>
+                        <h3 class="mt-4 text-xl font-medium text-gray-300">No Data Available</h3>
+                        <p class="mt-2 text-base text-gray-500">Could not find any maintenance records.</p>
+                    </div>`;
+                return;
+            }
+            
+            // Restore grid class if it was changed for the 'no data' message
+            cardsContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6';
+
+            // Sort data by the 'Reported' date in descending order (most recent first)
+            maintenanceData.sort((a, b) => new Date(b.Reported) - new Date(a.Reported));
+
+            maintenanceData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800/60 backdrop-blur-xl p-4 sm:p-5 rounded-xl shadow-lg border border-gray-700/50 flex flex-col space-y-4 hover:border-teal-400/50 transition-all duration-300';
+                
+                // Format reported date for display
+                const reportedDate = item.Reported ? new Date(item.Reported) : null;
+                const dateString = reportedDate && !isNaN(reportedDate) ? reportedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'No date';
+                const timeString = reportedDate && !isNaN(reportedDate) ? reportedDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h2 class="font-bold text-xl sm:text-2xl text-white pr-2">${item.Unit || 'N/A'}</h2>
+                        <div class="text-right text-xs sm:text-sm text-gray-400 flex-shrink-0">
+                            <div>${dateString}</div>
+                            <div>${timeString}</div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        ${getStatusIndicator(item.Status)}
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-teal-400 uppercase font-semibold tracking-wider">Location</div>
+                        <p class="text-gray-300 mt-1">${item.Location || 'N/A'}</p>
+                    </div>
+
+                    ${item.Comments ? `
+                    <div>
+                        <div class="text-xs text-teal-400 uppercase font-semibold tracking-wider">Comments</div>
+                        <p class="text-gray-300 mt-1 text-sm sm:text-base">${item.Comments}</p>
+                    </div>` : ''}
+                `;
+                cardsContainer.appendChild(card);
+            });
+            updateTimestamp();
+        }
+        
+        /**
+         * Updates the "Last updated" timestamp in the footer.
+         */
+        function updateTimestamp() {
+            const el = document.getElementById('last-updated');
+            if (el) {
+                const now = new Date();
+                const options = {
+                    year: 'numeric', month: 'long', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                };
+                el.textContent = `Last updated: ${now.toLocaleString(navigator.language, options)}`;
+            }
+        }
+
+        /**
+         * Wrapper function to load data from the sheet.
+         */
+        function refreshData() {
+            loadSheetData(CONFIG.maintenanceSheetUrl, 'maintenanceData', displayData, 5);
+        }
+
+        // Initial data load and periodic refresh
+        document.addEventListener('DOMContentLoaded', refreshData);
+        setInterval(refreshData, (CONFIG.cacheDurationMinutes || 5) * 60 * 1000);
+    </script>
+</body>
+</html>
+
