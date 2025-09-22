@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTFD Admin Links</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome is no longer needed -->
+    <style>
+        /* Custom styles for a nice feel on mobile */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on mobile */
+        }
+        .icon-link {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .icon-link:active {
+            transform: scale(0.95); /* Adds a nice press-down effect */
+        }
+        .icon-link:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .icon-image {
+            width: 48px;  /* Custom icon size */
+            height: 48px;
+            margin-left: auto;
+            margin-right: auto;
+            object-fit: cover; /* Ensures your icon fits well */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-start justify-center min-h-screen pt-16 sm:pt-24">
+
+    <div class="w-full max-w-md p-8 space-y-8">
+        <!-- Profile Header -->
+        <div class="text-center">
+            <img src="logo.png" alt="Profile Picture" class="w-32 h-32 rounded-full mx-auto mb-4 shadow-lg">
+            <h1 class="text-3xl font-bold">HTFD Dashboard</h1>
+            <p class="text-gray-400 mt-2">Admin Links</p>
+        </div>
+
+        <!-- Icon Grid -->
+        <div class="grid grid-cols-3 gap-6 text-center">
+            
+            <!-- Icon 1: EMS Schedule -->
+            <a href="https://tfrank615.github.io/76db/schedule" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/schedule.png" alt="Schedule Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">EMS SCHEDULE</span>
+            </a>
+
+            <!-- Icon 2: Statistics -->
+            <a href="https://tfrank615.github.io/76db/stats1" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/stats.png" alt="Stats Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">2025 STATS</span>
+            </a>
+
+            <!-- Icon 3: Trainings/Events -->
+            <a href="https://tfrank615.github.io/76db/googlecalander" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/calander.png" alt="Calander Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">TRAININGS/EVENTS</span>
+            </a>
+
+            <!-- Icon 4: Unit Status -->
+            <a href="https://tfrank615.github.io/76db/maintenance" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/maintenance.png" alt="Maint Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">UNIT STATUS</span>
+            </a>
+
+            <!-- Icon 5: Weather -->
+            <a href="https://tfrank615.github.io/76db/weather" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/weather.png" alt="Weather Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">WEATHER</span>
+            </a>
+
+            <!-- Icon 6: Weather Radar -->
+            <a href="https://tfrank615.github.io/76db/weather_radar" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/weatherradar.png" alt="Radar Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">WEATHER RADAR</span>
+            </a>
+
+            <!-- Icon 7: News & Announcements -->
+            <a href="https://tfrank615.github.io/76db/news" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/news.png" alt="News Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">ANNOUNCEMENTS</span>
+            </a>
+
+            <!-- Icon 8: Road Work & Closures -->
+            <a href="https://tfrank615.github.io/76db/map" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/map.png" alt="Work Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">ROAD WORK & CLOSURES</span>
+            </a>
+
+            <!-- Icon 9: ODOT Cameras -->
+            <a href="https://tfrank615.github.io/76db/ohgo" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/ohgo.png" alt="ODOT Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">ODOT CAMERAS</span>
+            </a>
+
+            <!-- Icon 10: Notable Addresses -->
+            <a href="https://tfrank615.github.io/76db/addresses" target="_blank" class="icon-link bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col justify-center items-center h-28">
+                <img src="./mobile/addresses.png" alt="House Caution Icon" class="icon-image rounded-full">
+                <span class="block mt-2 text-sm font-medium text-gray-300">NOTABLE ADDRESSES</span>
+            </a>
+
+
+        </div>
+    </div>
+
+</body>
+</html>
+
