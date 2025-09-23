@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmony Rolodex</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    
+    <!-- PWA and mobile app enhancements -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FD Rolodex">
+    <meta name="theme-color" content="#1a202c">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Prevents bounce on mobile */
+            overscroll-behavior-y: contain;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #718096; /* gray-500 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0; /* gray-400 */
+        }
+        .rolodex-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .rolodex-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- Header Section -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-red-500">HARMONY ROLODEX</h1>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="mb-8 max-w-2xl mx-auto">
+            <input type="text" id="search-bar" placeholder="Search by Name or Unit Number"
+                   class="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-white placeholder-gray-500">
+        </div>
+
+        <!-- Loading and No Results States -->
+        <div id="status-message" class="text-center text-gray-400"></div>
+
+        <!-- Rolodex Grid -->
+        <div id="rolodex-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            <!-- Contact cards will be inserted here -->
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0VotPZTFkALWoh6U6g6WnfqsVeltkkjCkd5CBVAHh60e-A63h5HdzaSVamSjkcxveTOfycKZ2K66r/pub?gid=2017903042&single=true&output=csv';
+            const rolodexContainer = document.getElementById('rolodex-container');
+            const searchBar = document.getElementById('search-bar');
+            const statusMessage = document.getElementById('status-message');
+
+            let contacts = [];
+
+            // Fetches and processes data from the Google Sheet
+            async function fetchData() {
+                try {
+                    statusMessage.textContent = 'Loading contacts...';
+                    const response = await fetch(googleSheetUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const csvText = await response.text();
+                    contacts = parseCSV(csvText);
+                    renderContacts(contacts);
+                    statusMessage.textContent = '';
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    statusMessage.innerHTML = `<div class="bg-red-900 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
+                        <strong class="font-bold">Error:</strong>
+                        <span class="block sm:inline">Failed to load contact data. Please check the Google Sheet link or your network connection.</span>
+                    </div>`;
+                }
+            }
+
+            // Parses CSV text into an array of objects
+            function parseCSV(text) {
+                // This more robust parser handles commas inside of quoted fields
+                const splitLine = (row) => {
+                    const result = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        // Toggle inQuotes state if the character is a quote
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                            continue; // Skip adding the quote to the value
+                        }
+                        // If we hit a comma and we're not inside quotes, we've found a new value
+                        if (char === ',' && !inQuotes) {
+                            result.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current.trim());
+                    return result;
+                };
+
+                const lines = text.trim().split(/\r?\n/);
+                if (lines.length < 2) return [];
+                
+                // Trim headers to ensure they match correctly
+                const headers = lines[0].split(',').map(h => h.trim());
+                
+                return lines.slice(1).map(line => {
+                    if (!line.trim()) return null; // Skip empty lines
+                    
+                    const values = splitLine(line);
+                    const entry = {};
+                    headers.forEach((header, index) => {
+                        entry[header] = values[index] || '';
+                    });
+                    return entry;
+                }).filter(entry => entry && (entry['FIRST NAME'] || entry['LAST NAME'])); // Filter out rows without a name
+            }
+
+            // Renders contact cards to the DOM
+            function renderContacts(data) {
+                rolodexContainer.innerHTML = '';
+                if (data.length === 0) {
+                    statusMessage.textContent = 'No contacts found.';
+                    return;
+                }
+                statusMessage.textContent = '';
+                data.forEach(contact => {
+                    const card = document.createElement('div');
+                    card.className = 'rolodex-card bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden';
+                    
+                    const fullName = `${contact['FIRST NAME'] || ''} ${contact['LAST NAME'] || ''}`.trim();
+                    const name = fullName || 'N/A';
+                    const division = contact.DIVISION || 'N/A';
+                    const phone = contact.PHONE || 'N/A';
+                    const radioId = contact['RADIO ID'] || 'N/A';
+                    const addressParts = [contact.ADDRESS, contact.CITY, contact.ZIP].filter(Boolean);
+                    const address = addressParts.length > 0 ? addressParts.join(', ') : 'N/A';
+
+                    const isEMS = division.toLowerCase() === 'ems';
+                    const isFire = division.toLowerCase() === 'fire';
+                    const isDayProgram = division.toLowerCase() === 'day program';
+                    
+                    let divisionTextColor = 'text-red-400';
+
+                    if (isEMS) {
+                        divisionTextColor = 'text-blue-400';
+                    } else if (isFire) {
+                        divisionTextColor = 'text-yellow-400';
+                    } else if (isDayProgram) {
+                        divisionTextColor = 'text-green-400';
+                    }
+
+                    card.innerHTML = `
+                        <div class="card-header flex items-center justify-between p-4 cursor-pointer">
+                            <div class="flex items-center min-w-0">
+                                <div class="min-w-0">
+                                    <h2 class="text-lg font-bold text-white truncate">${name}</h2>
+                                    <p class="${divisionTextColor} text-sm">${division}</p>
+                                </div>
+                            </div>
+                            <svg class="w-6 h-6 text-gray-400 transition-transform duration-300 transform flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                        <div class="card-details max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                            <div class="px-4 pb-4 pt-2 border-t border-gray-700">
+                                <div class="space-y-3 text-sm mt-3">
+                                    <p><strong class="text-gray-400 w-24 inline-block">Phone:</strong> <a href="tel:${phone}" class="text-blue-400 hover:underline">${phone}</a></p>
+                                    <p><strong class="text-gray-400 w-24 inline-block">Radio ID:</strong> <span class="text-gray-300">${radioId}</span></p>
+                                    <p><strong class="text-gray-400 w-24 inline-block">Address:</strong> <span class="text-gray-300">${address}</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    rolodexContainer.appendChild(card);
+
+                    // Add click event listener to the header to toggle the details
+                    const header = card.querySelector('.card-header');
+                    const details = card.querySelector('.card-details');
+                    const arrow = card.querySelector('svg');
+
+                    header.addEventListener('click', () => {
+                        const isExpanded = details.style.maxHeight && details.style.maxHeight !== '0px';
+                        if (isExpanded) {
+                            details.style.maxHeight = '0px';
+                            arrow.classList.remove('rotate-180');
+                        } else {
+                            // Set max-height to scrollHeight for a perfect fit
+                            details.style.maxHeight = details.scrollHeight + 'px';
+                            arrow.classList.add('rotate-180');
+                        }
+                    });
+                });
+            }
+
+            // Handles search functionality
+            searchBar.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                if (!searchTerm) {
+                    renderContacts(contacts);
+                    return;
+                }
+                const filteredContacts = contacts.filter(contact => {
+                    const fullName = `${contact['FIRST NAME'] || ''} ${contact['LAST NAME'] || ''}`.toLowerCase();
+                    const division = (contact.DIVISION || '').toLowerCase();
+                    const radioId = (contact['RADIO ID'] || '').toLowerCase();
+                    return fullName.includes(searchTerm) || division.includes(searchTerm) || radioId.includes(searchTerm);
+                });
+                renderContacts(filteredContacts);
+            });
+
+            // Initial data load
+            fetchData();
+        });
+    </script>
+
+</body>
+</html>
+
+
+
+
+
+
