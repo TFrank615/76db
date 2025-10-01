@@ -89,7 +89,7 @@
             
             function parseCSV(text) {
                 // This function dynamically reads the headers from your sheet.
-                // It works correctly as long as 'Address', 'Note', 'priority', and 'Timestamp' headers exist, regardless of their column order.
+                // It works correctly as long as 'Address', 'Note', 'Priority', and 'Timestamp' headers exist, regardless of their column order.
                 const lines = text.trim().split('\n').map(line => line.trim());
                 const headers = lines.shift().split(',').map(h => h.trim());
 
@@ -136,7 +136,7 @@
                     // Skip if address is missing
                     if (!note.address) return;
 
-                    // Determine background color based on priority
+                    // Determine background color based on Priority
                     const priority = (note.priority || '').toLowerCase();
                     let bgColorClass = 'bg-yellow-200'; // Default sticky note color
                     let shadowClass = 'shadow-md';
